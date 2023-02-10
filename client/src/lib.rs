@@ -1,6 +1,7 @@
 mod game;
-mod wasm;
+pub mod graphics;
 mod utils;
+mod wasm;
 
 pub use game::*;
 

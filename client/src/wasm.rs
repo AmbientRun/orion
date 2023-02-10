@@ -1,17 +1,24 @@
-use tracing_subscriber::{prelude::*, registry};
-use tracing_tree::HierarchicalLayer;
+use tracing::info_span;
+use tracing_subscriber::{fmt::time::UtcTime, prelude::*, registry};
 use tracing_web::MakeConsoleWriter;
 use wasm_bindgen::prelude::wasm_bindgen;
 use winit::{
-    event_loop::EventLoop,
+    event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent},
+    event_loop::{ControlFlow, EventLoop},
     window::{Window, WindowBuilder},
 };
 
+use crate::utils;
+
 #[wasm_bindgen(start)]
 pub fn run() {
-    registry()
-        .with(HierarchicalLayer::new(4).with_writer(MakeConsoleWriter))
-        .init();
+    utils::set_panic_hook();
+    let fmt_layer = tracing_subscriber::fmt::layer()
+        .with_ansi(false) // Only partially supported across browsers
+        .with_timer(UtcTime::rfc_3339()) // std::time is not available in browsers
+        .with_writer(MakeConsoleWriter); // write events to the console
+
+    registry().with(fmt_layer).init();
 
     tracing::info!("Initializing app");
 
@@ -23,6 +30,27 @@ pub fn run() {
         .unwrap();
 
     insert_canvas(&window);
+
+    // info_span!("event_loop");
+    // event_loop.run(move |event, _, control_flow| match event {
+    //     Event::WindowEvent {
+    //         ref event,
+    //         window_id,
+    //     } if window_id == window.id() => match event {
+    //         WindowEvent::CloseRequested
+    //         | WindowEvent::KeyboardInput {
+    //             input:
+    //                 KeyboardInput {
+    //                     state: ElementState::Pressed,
+    //                     virtual_keycode: Some(VirtualKeyCode::Escape),
+    //                     ..
+    //                 },
+    //             ..
+    //         } => *control_flow = ControlFlow::Exit,
+    //         _ => {}
+    //     },
+    //     _ => {}
+    // });
 }
 
 pub fn insert_canvas(window: &Window) {

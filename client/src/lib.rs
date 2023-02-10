@@ -1,5 +1,5 @@
 mod game;
-// mod network;
+mod wasm;
 mod utils;
 
 pub use game::*;

@@ -1,6 +1,6 @@
 {
   "build": {
-    "cmd": "wasm-pack build"
+    "cmd": "wasm-pack build client"
   },
   "run": {
     "cmd": "npm run start --open",

@@ -27,7 +27,7 @@
   },
   "homepage": "https://github.com/rustwasm/create-wasm-app#readme",
   "dependencies": {
-    "orion": "file:../pkg"
+    "orion-client": "file:../client/pkg"
   },
   "devDependencies": {
     "hello-wasm-pack": "^0.1.0",

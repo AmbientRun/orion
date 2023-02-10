@@ -1,4 +1,4 @@
-import * as wasm from "orion";
+import * as wasm from "orion-client";
 
 let canvas = document.getElementById("canvas")
 

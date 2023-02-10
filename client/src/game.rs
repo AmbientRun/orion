@@ -2,6 +2,7 @@ use std::{f32::consts::TAU, f64::consts::PI};
 
 use glam::{vec2, Vec2, Vec3};
 use itertools::Itertools;
+use orion_shared::Asteroid;
 use rand::{thread_rng, Rng};
 use wasm_bindgen::{prelude::wasm_bindgen, JsCast};
 use web_sys::HtmlCanvasElement;
@@ -79,11 +80,4 @@ impl Default for Game {
     fn default() -> Self {
         Self::new()
     }
-}
-
-pub struct Asteroid {
-    pub color: Vec3,
-    pub size: f32,
-    pub pos: Vec2,
-    pub vel: Vec2,
 }

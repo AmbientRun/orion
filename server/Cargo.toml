@@ -6,3 +6,28 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+orion-shared = { path = "../shared" }
+
+itertools.workspace = true
+rand.workspace = true
+glam.workspace = true
+parking_lot.workspace = true
+anyhow.workspace = true
+
+tokio = { version = "1.25", features = [
+    "macros",
+    "rt",
+    "rt-multi-thread",
+    "parking_lot",
+    "bytes",
+    "rt",
+    "rt-multi-thread",
+    "parking_lot",
+    "sync",
+] }
+quinn = "0.9"
+rustls = { version = "*", features = ["dangerous_configuration", "quic"] }
+tracing = "0.1"
+rcgen = "0.10"
+tracing-tree = "0.2"
+tracing-subscriber = "0.3"

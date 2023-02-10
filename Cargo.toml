@@ -23,6 +23,17 @@ console_error_panic_hook = { version = "0.1.6", optional = true }
 # compared to the default allocator's ~10K. It is slower than the default
 # allocator, however.
 wee_alloc = { version = "0.4.5", optional = true }
+glam = { version = "0.22.0", features = ["rand"] }
+rand = "0.8.5"
+getrandom = { version = "0.2.8", features = ["js"] }
+itertools = "0.10.5"
+web-sys = { version = "0.3.61", features = [
+    "CanvasRenderingContext2d",
+    "Element",
+    "HtmlDocument",
+    "HtmlCanvasElement",
+    "Window",
+] }
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.13"

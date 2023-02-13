@@ -119,7 +119,6 @@ impl Game {
     }
 
     pub fn render<'a>(&'a self, render_pass: &mut RenderPass<'a>) {
-        tracing::info!("Drawing game");
         render_pass.set_pipeline(self.shader.pipeline());
         self.square.bind(render_pass);
 

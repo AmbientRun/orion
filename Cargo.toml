@@ -9,3 +9,15 @@ glam = { version = "0.22.0", features = ["rand", "bytemuck"] }
 rand = "0.8.5"
 itertools = "0.10.5"
 anyhow = "1.0"
+
+[profile.release]
+# Tell `rustc` to optimize for small code size.
+opt-level = "s"
+
+[profile.dev.package."*"]
+# Set the default for dependencies in Development mode.
+opt-level = "s"
+
+[profile.dev]
+# Turn on a small amount of optimisation in Development mode.
+opt-level = "s"

@@ -1,5 +1,8 @@
-use std::sync::Arc;
+use std::{future::Future, sync::Arc};
 
+use once_cell::sync::Lazy;
+use time::Duration;
+use tokio::runtime::{self, Runtime};
 use tracing::{info_span, metadata::LevelFilter};
 use tracing_subscriber::{fmt::time::UtcTime, prelude::*, registry, EnvFilter};
 use tracing_web::MakeConsoleWriter;
@@ -13,7 +16,19 @@ use winit::{
 
 use crate::{graphics::Gpu, renderer::Renderer, utils, Game};
 
+/// Provides a tokio runtime to the future without blocking the browser's executor
+pub fn with_tokio_runtime(fut: impl Future<Output = ()>) -> impl Future<Output = ()> {
+    static RUNTIME: Lazy<Runtime> =
+        Lazy::new(|| runtime::Builder::new_current_thread().build().unwrap());
+
+    tokio_util::context::TokioContext::new(fut, RUNTIME.handle().clone())
+}
+
 #[wasm_bindgen(start)]
+async fn main() {
+    with_tokio_runtime(run()).await
+}
+
 pub async fn run() {
     utils::set_panic_hook();
     let fmt_layer = tracing_subscriber::fmt::layer()
@@ -31,6 +46,14 @@ pub async fn run() {
         .init();
 
     tracing::info!("Initializing app");
+
+    let task = tokio::spawn(async move {
+        tracing::info!("Hello from the other side");
+    });
+
+    tracing::info!("Spawned task");
+    task.await.unwrap();
+    tracing::info!("Task completed");
 
     let event_loop = EventLoop::new();
 

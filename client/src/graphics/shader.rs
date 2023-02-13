@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use wgpu::{PipelineLayout, RenderPipeline, TextureFormat, VertexBufferLayout};
+use wgpu::{RenderPipeline, TextureFormat, VertexBufferLayout};
 
 use super::Gpu;
 

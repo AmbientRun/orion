@@ -8,12 +8,13 @@ use wasm_bindgen::{prelude::wasm_bindgen, JsCast};
 use web_sys::HtmlCanvasElement;
 use wgpu::{CommandEncoder, RenderPass};
 
-use crate::graphics::{Gpu, Shader};
+use crate::graphics::{Gpu, Mesh, Shader, ShaderDesc, Vertex};
 
 pub struct Game {
     asteroids: Vec<Asteroid>,
     gpu: Arc<Gpu>,
     shader: Shader,
+    square: Mesh,
 }
 
 impl Game {
@@ -35,16 +36,20 @@ impl Game {
 
         let shader = Shader::new(
             &gpu,
-            crate::graphics::ShaderDesc {
+            ShaderDesc {
                 source: include_str!("../assets/shaders.wgsl").into(),
                 format: gpu.surface_format(),
+                vertex_layouts: vec![Vertex::layout()].into(),
             },
         );
+
+        let square = Mesh::square(&gpu);
 
         Self {
             asteroids,
             gpu,
             shader,
+            square,
         }
     }
 
@@ -55,7 +60,9 @@ impl Game {
     }
 
     pub fn render<'a>(&'a self, render_pass: &mut RenderPass<'a>) {
+        tracing::info!("Drawing game");
         render_pass.set_pipeline(self.shader.pipeline());
-        render_pass.draw(0..3, 0..1); // 3.
+        self.square.bind(render_pass);
+        render_pass.draw_indexed(0..self.square.index_count(), 0, 0..1);
     }
 }

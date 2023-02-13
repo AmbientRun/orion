@@ -5,7 +5,7 @@ members = ["client", "server", "shared"]
 [workspace.dependencies]
 
 parking_lot = "0.12"
-glam = { version = "0.22.0", features = ["rand"] }
+glam = { version = "0.22.0", features = ["rand", "bytemuck"] }
 rand = "0.8.5"
 itertools = "0.10.5"
 anyhow = "1.0"

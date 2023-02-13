@@ -51,6 +51,7 @@ winit = "0.28"
 
 wgpu = { version = "0.15", features = ["webgl"] }
 
+bytemuck = { version = "1.13", features = ["derive"] }
 
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["time", "env-filter"] }

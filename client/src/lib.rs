@@ -1,5 +1,6 @@
 mod game;
 pub mod graphics;
+pub mod renderer;
 mod utils;
 mod wasm;
 

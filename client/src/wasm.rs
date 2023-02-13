@@ -1,8 +1,9 @@
+use std::sync::Arc;
+
 use tracing::{info_span, metadata::LevelFilter};
 use tracing_subscriber::{fmt::time::UtcTime, prelude::*, registry, EnvFilter};
 use tracing_web::MakeConsoleWriter;
 use wasm_bindgen::prelude::wasm_bindgen;
-use wgpu::util::initialize_adapter_from_env;
 use winit::{
     event::*,
     event_loop::{ControlFlow, EventLoop},
@@ -10,7 +11,7 @@ use winit::{
     window::{Window, WindowBuilder},
 };
 
-use crate::{graphics::GraphicsState, utils};
+use crate::{graphics::Gpu, renderer::Renderer, utils, Game};
 
 #[wasm_bindgen(start)]
 pub async fn run() {
@@ -40,22 +41,25 @@ pub async fn run() {
 
     insert_canvas(&window);
 
-    let mut state = GraphicsState::new(window).await;
+    let gpu = Arc::new(Gpu::new(window).await);
+    let mut renderer = Renderer::new();
+
+    let game = Game::new(gpu.clone());
 
     event_loop.spawn(move |event, _, control_flow| match event {
         Event::WindowEvent {
             ref event,
             window_id,
-        } if window_id == state.window().id() => match event {
+        } if window_id == gpu.window().id() => match event {
             WindowEvent::ReceivedCharacter(c) => {
                 tracing::info!("Typed: {c}");
             }
             WindowEvent::Resized(physical_size) => {
-                state.resize(*physical_size);
+                gpu.resize(*physical_size);
             }
             WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
                 // new_inner_size is &&mut so we have to dereference it twice
-                state.resize(**new_inner_size);
+                gpu.resize(**new_inner_size);
             }
             WindowEvent::CloseRequested
             | WindowEvent::KeyboardInput {
@@ -69,12 +73,11 @@ pub async fn run() {
             } => *control_flow = ControlFlow::Exit,
             _ => {}
         },
-        Event::RedrawRequested(window_id) if window_id == state.window().id() => {
-            state.update();
-            match state.render() {
+        Event::RedrawRequested(window_id) if window_id == gpu.window().id() => {
+            match gpu.render(|encoder, view| renderer.render(encoder, view, &game)) {
                 Ok(_) => {}
                 // Reconfigure the surface if lost
-                Err(wgpu::SurfaceError::Lost) => state.resize(state.size()),
+                Err(wgpu::SurfaceError::Lost) => gpu.resize(gpu.size()),
                 // The system is out of memory, we should probably quit
                 Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,
                 // All other errors (Outdated, Timeout) should be resolved by the next frame
@@ -84,7 +87,7 @@ pub async fn run() {
         Event::MainEventsCleared => {
             // RedrawRequested will only trigger once, unless we manually
             // request it.
-            state.window().request_redraw();
+            gpu.window().request_redraw();
         }
         _ => {}
     });

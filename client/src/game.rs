@@ -1,4 +1,4 @@
-use std::{f32::consts::TAU, f64::consts::PI};
+use std::{f32::consts::TAU, f64::consts::PI, sync::Arc};
 
 use glam::{vec2, Vec2, Vec3};
 use itertools::Itertools;
@@ -6,15 +6,18 @@ use orion_shared::Asteroid;
 use rand::{thread_rng, Rng};
 use wasm_bindgen::{prelude::wasm_bindgen, JsCast};
 use web_sys::HtmlCanvasElement;
+use wgpu::{CommandEncoder, RenderPass};
 
-#[wasm_bindgen]
+use crate::graphics::{Gpu, Shader};
+
 pub struct Game {
     asteroids: Vec<Asteroid>,
+    gpu: Arc<Gpu>,
+    shader: Shader,
 }
 
-#[wasm_bindgen]
 impl Game {
-    pub fn new() -> Self {
+    pub fn new(gpu: Arc<Gpu>) -> Self {
         let mut rng = thread_rng();
 
         let asteroids = (0..16)
@@ -30,7 +33,19 @@ impl Game {
             })
             .collect_vec();
 
-        Self { asteroids }
+        let shader = Shader::new(
+            &gpu,
+            crate::graphics::ShaderDesc {
+                source: include_str!("../assets/shaders.wgsl").into(),
+                format: gpu.surface_format(),
+            },
+        );
+
+        Self {
+            asteroids,
+            gpu,
+            shader,
+        }
     }
 
     pub fn update(&mut self, dt: f32) {
@@ -39,44 +54,8 @@ impl Game {
         }
     }
 
-    pub fn render(&self, canvas: HtmlCanvasElement) {
-
-        let context = canvas
-            .get_context("2d")
-            .unwrap()
-            .unwrap()
-            .dyn_into::<web_sys::CanvasRenderingContext2d>()
-            .unwrap();
-
-        for v in &self.asteroids {
-            context.begin_path();
-
-            let color = format!(
-                "rgb({},{},{})",
-                v.color.x * 255.0,
-                v.color.y * 255.0,
-                v.color.z * 255.0
-            );
-            let color = wasm_bindgen::JsValue::from_str(&color);
-
-            context.set_fill_style(&color);
-            context
-                .arc(
-                    v.pos.x as _,
-                    v.pos.y as _,
-                    v.size as _,
-                    0.0,
-                    std::f64::consts::TAU,
-                )
-                .unwrap();
-
-            context.fill()
-        }
-    }
-}
-
-impl Default for Game {
-    fn default() -> Self {
-        Self::new()
+    pub fn render<'a>(&'a self, render_pass: &mut RenderPass<'a>) {
+        render_pass.set_pipeline(self.shader.pipeline());
+        render_pass.draw(0..3, 0..1); // 3.
     }
 }

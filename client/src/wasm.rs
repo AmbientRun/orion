@@ -31,7 +31,7 @@ pub fn run() {
 
     insert_canvas(&window);
 
-    // info_span!("event_loop");
+    info_span!("event_loop");
     // event_loop.run(move |event, _, control_flow| match event {
     //     Event::WindowEvent {
     //         ref event,

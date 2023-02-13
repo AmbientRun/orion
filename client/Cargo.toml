@@ -51,6 +51,7 @@ winit = "0.28"
 
 wgpu = { version = "0.15", features = ["webgl"] }
 
+
 bytemuck = { version = "1.13", features = ["derive"] }
 
 tracing = "0.1"
@@ -65,3 +66,17 @@ wasm-bindgen-test = "0.3.13"
 [profile.release]
 # Tell `rustc` to optimize for small code size.
 opt-level = "s"
+
+
+[dependencies.image]
+version = "0.24"
+default-features = false
+features = ["png", "jpeg"]
+
+[profile.dev.package."*"]
+# Set the default for dependencies in Development mode.
+opt-level = 3
+
+[profile.dev]
+# Turn on a small amount of optimisation in Development mode.
+opt-level = 1

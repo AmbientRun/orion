@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="512"
+   height="512"
+   viewBox="0 0 512 512"
+   version="1.1"
+   id="svg5"
+   inkscape:version="1.2.2 (b0a8486541, 2022-12-01)"
+   sodipodi:docname="asteroid.svg"
+   inkscape:export-filename="asteroid.png"
+   inkscape:export-xdpi="96"
+   inkscape:export-ydpi="96"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview7"
+     pagecolor="#505050"
+     bordercolor="#ffffff"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="1"
+     inkscape:deskcolor="#505050"
+     inkscape:document-units="px"
+     showgrid="false"
+     inkscape:zoom="2.0058594"
+     inkscape:cx="186.70302"
+     inkscape:cy="238.30185"
+     inkscape:window-width="2560"
+     inkscape:window-height="1371"
+     inkscape:window-x="0"
+     inkscape:window-y="32"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs2">
+    <filter
+       style="color-interpolation-filters:sRGB;"
+       inkscape:label="Drop Shadow"
+       id="filter691"
+       x="-0.050417844"
+       y="-0.026675708"
+       width="1.0794585"
+       height="1.0755812">
+      <feFlood
+         flood-opacity="0.498039"
+         flood-color="rgb(0,0,0)"
+         result="flood"
+         id="feFlood681" />
+      <feComposite
+         in="flood"
+         in2="SourceGraphic"
+         operator="out"
+         result="composite1"
+         id="feComposite683" />
+      <feGaussianBlur
+         in="composite1"
+         stdDeviation="3"
+         result="blur"
+         id="feGaussianBlur685" />
+      <feOffset
+         dx="-5.3"
+         dy="6"
+         result="offset"
+         id="feOffset687" />
+      <feComposite
+         in="offset"
+         in2="SourceGraphic"
+         operator="atop"
+         result="composite2"
+         id="feComposite689" />
+    </filter>
+  </defs>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <g
+       id="g697">
+      <ellipse
+         style="fill:#666666;stroke-width:2;stroke-linejoin:bevel;paint-order:markers fill stroke"
+         id="path286"
+         cx="233.31645"
+         cy="241.04382"
+         rx="156.04285"
+         ry="179.72346" />
+      <ellipse
+         style="fill:#666666;stroke-width:2;stroke-linejoin:bevel;paint-order:markers fill stroke"
+         id="path396"
+         cx="318.81598"
+         cy="325.04773"
+         rx="70.543327"
+         ry="95.719574" />
+      <ellipse
+         style="fill:#666666;stroke-width:2;stroke-linejoin:bevel;paint-order:markers fill stroke"
+         id="path398"
+         cx="137.84616"
+         cy="189.44499"
+         rx="75.030182"
+         ry="83.256088" />
+      <ellipse
+         style="fill:#666666;stroke-width:2;stroke-linejoin:bevel;paint-order:markers fill stroke"
+         id="path400"
+         cx="318.81598"
+         cy="142.58228"
+         rx="77.772148"
+         ry="78.769234" />
+    </g>
+    <g
+       id="g533"
+       style="filter:url(#filter691)">
+      <ellipse
+         style="fill:#444444;stroke-width:2;stroke-linejoin:bevel;paint-order:markers fill stroke;stroke:none"
+         id="path506"
+         cx="168.25706"
+         cy="355.20935"
+         rx="16.202532"
+         ry="17.19961" />
+      <ellipse
+         style="fill:#444444;stroke-width:2;stroke-linejoin:bevel;paint-order:markers fill stroke;stroke:none"
+         id="path508"
+         cx="297.57834"
+         cy="377.99222"
+         rx="16.900637"
+         ry="16.551128" />
+      <ellipse
+         style="fill:#444444;stroke-width:2;stroke-linejoin:bevel;paint-order:markers fill stroke;stroke:none"
+         id="path510"
+         cx="324.2999"
+         cy="316.82181"
+         rx="16.202532"
+         ry="17.19961" />
+      <ellipse
+         style="fill:#444444;stroke-width:2;stroke-linejoin:bevel;paint-order:markers fill stroke;stroke:none"
+         id="path512"
+         cx="276.78918"
+         cy="224.21811"
+         rx="20.789169"
+         ry="16.825708" />
+      <ellipse
+         style="fill:#444444;stroke-width:2;stroke-linejoin:bevel;paint-order:markers fill stroke;stroke:none"
+         id="path514"
+         cx="337.21429"
+         cy="145.22327"
+         rx="18.398315"
+         ry="15.804974" />
+      <ellipse
+         style="fill:#444444;stroke-width:2;stroke-linejoin:bevel;paint-order:markers fill stroke;stroke:none"
+         id="path516"
+         cx="201.65921"
+         cy="138.59396"
+         rx="17.199608"
+         ry="13.959105" />
+      <ellipse
+         style="fill:#444444;stroke-width:2;stroke-linejoin:bevel;paint-order:markers fill stroke;stroke:none"
+         id="path518"
+         cx="130.43266"
+         cy="252.4902"
+         rx="12.648161"
+         ry="17.17959" />
+      <ellipse
+         style="fill:#444444;stroke-width:2;stroke-linejoin:bevel;paint-order:markers fill stroke;stroke:none"
+         id="path520"
+         cx="125.38267"
+         cy="181.96689"
+         rx="17.698153"
+         ry="17.448881" />
+      <ellipse
+         style="fill:#444444;stroke-width:2;stroke-linejoin:bevel;paint-order:markers fill stroke;stroke:none"
+         id="path522"
+         cx="215.86757"
+         cy="293.24579"
+         rx="17.448879"
+         ry="23.576008" />
+    </g>
+  </g>
+</svg>

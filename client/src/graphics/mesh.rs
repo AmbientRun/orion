@@ -1,5 +1,7 @@
-use glam::{vec3, Vec3};
-use wgpu::{util::DeviceExt, Buffer, RenderPass, VertexBufferLayout};
+use glam::{vec2, vec3, Vec2, Vec3};
+use wgpu::{
+    util::DeviceExt, vertex_attr_array, Buffer, RenderPass, VertexAttribute, VertexBufferLayout,
+};
 
 use super::Gpu;
 
@@ -7,18 +9,21 @@ use super::Gpu;
 #[derive(bytemuck::Pod, bytemuck::Zeroable, Copy, Debug, Clone)]
 pub struct Vertex {
     pos: Vec3,
+    tex_coords: Vec2,
 }
 
 impl Vertex {
-    const fn new(pos: Vec3) -> Self {
-        Self { pos }
+    const fn new(pos: Vec3, tex_coords: Vec2) -> Self {
+        Self { pos, tex_coords }
     }
 
     pub fn layout() -> VertexBufferLayout<'static> {
+        static ATTRIBUTES: &[VertexAttribute] = &vertex_attr_array![0 => Float32x3, 1 => Float32x2];
+
         wgpu::VertexBufferLayout {
             array_stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
             step_mode: wgpu::VertexStepMode::Vertex,
-            attributes: &wgpu::vertex_attr_array![0 => Float32x3],
+            attributes: ATTRIBUTES,
         }
     }
 }
@@ -58,10 +63,10 @@ impl Mesh {
 
     pub fn square(gpu: &Gpu) -> Self {
         const VERTICES: &[Vertex] = &[
-            Vertex::new(vec3(-0.5, -0.5, 0.0)),
-            Vertex::new(vec3(0.5, -0.5, 0.0)),
-            Vertex::new(vec3(0.5, 0.5, 0.0)),
-            Vertex::new(vec3(-0.5, 0.5, 0.0)),
+            Vertex::new(vec3(-0.5, -0.5, 0.0), vec2(0.0, 1.0)),
+            Vertex::new(vec3(0.5, -0.5, 0.0), vec2(1.0, 1.0)),
+            Vertex::new(vec3(0.5, 0.5, 0.0), vec2(1.0, 0.0)),
+            Vertex::new(vec3(-0.5, 0.5, 0.0), vec2(0.0, 0.0)),
         ];
 
         const INDICES: &[u32] = &[0, 1, 2, 2, 3, 0];

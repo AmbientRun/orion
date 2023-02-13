@@ -4,15 +4,14 @@ use wgpu::{PipelineLayout, RenderPipeline, TextureFormat, VertexBufferLayout};
 
 use super::Gpu;
 
-pub struct ShaderDesc {
-    pub source: Cow<'static, str>,
+pub struct ShaderDesc<'a> {
+    pub source: Cow<'a, str>,
     pub format: TextureFormat,
-    pub vertex_layouts: Cow<'static, [VertexBufferLayout<'static>]>,
+    pub vertex_layouts: Cow<'a, [VertexBufferLayout<'static>]>,
 }
 
 pub struct Shader {
     pipeline: RenderPipeline,
-    pipeline_layout: PipelineLayout,
 }
 
 impl Shader {
@@ -24,23 +23,15 @@ impl Shader {
                 source: wgpu::ShaderSource::Wgsl(desc.source),
             });
 
-        let pipeline_layout = gpu
-            .device
-            .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                label: Some("Render Pipeline Layout"),
-                bind_group_layouts: &[],
-                push_constant_ranges: &[],
-            });
-
         let pipeline = gpu
             .device
             .create_render_pipeline(&wgpu::RenderPipelineDescriptor {
                 label: Some("Render Pipeline"),
-                layout: Some(&pipeline_layout),
+                layout: None,
                 vertex: wgpu::VertexState {
                     module: &shader,
-                    entry_point: "vs_main",         // 1.
-                    buffers: &*desc.vertex_layouts, // 2.
+                    entry_point: "vs_main",        // 1.
+                    buffers: &desc.vertex_layouts, // 2.
                 },
                 fragment: Some(wgpu::FragmentState {
                     // 3.
@@ -49,7 +40,7 @@ impl Shader {
                     targets: &[Some(wgpu::ColorTargetState {
                         // 4.
                         format: desc.format,
-                        blend: Some(wgpu::BlendState::REPLACE),
+                        blend: Some(wgpu::BlendState::ALPHA_BLENDING),
                         write_mask: wgpu::ColorWrites::ALL,
                     })],
                 }),
@@ -74,10 +65,7 @@ impl Shader {
                 multiview: None, // 5.
             });
 
-        Self {
-            pipeline,
-            pipeline_layout,
-        }
+        Self { pipeline }
     }
 
     pub fn pipeline(&self) -> &RenderPipeline {

@@ -12,7 +12,7 @@ use crate::renderer::Renderer;
 pub struct Gpu {
     surface: wgpu::Surface,
     pub device: wgpu::Device,
-    queue: wgpu::Queue,
+    pub queue: wgpu::Queue,
     surface_format: TextureFormat,
     surface_caps: SurfaceCapabilities,
     size: PhysicalSize<u32>,

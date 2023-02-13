@@ -6,7 +6,8 @@
     "cmd": "npm run start --open",
     "cwd": "www",
     "env": {
-      "NODE_OPTIONS": "--openssl-legacy-provider"
+      "NODE_OPTIONS": "--openssl-legacy-provider",
+      "RUST_LOG": "info"
     }
   }
 }

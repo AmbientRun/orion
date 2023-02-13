@@ -1,5 +1,5 @@
-use tracing::info_span;
-use tracing_subscriber::{fmt::time::UtcTime, prelude::*, registry};
+use tracing::{info_span, metadata::LevelFilter};
+use tracing_subscriber::{fmt::time::UtcTime, prelude::*, registry, EnvFilter};
 use tracing_web::MakeConsoleWriter;
 use wasm_bindgen::prelude::wasm_bindgen;
 use wgpu::util::initialize_adapter_from_env;
@@ -20,7 +20,14 @@ pub async fn run() {
         .with_timer(UtcTime::rfc_3339()) // std::time is not available in browsers
         .with_writer(MakeConsoleWriter); // write events to the console
 
-    registry().with(fmt_layer).init();
+    registry()
+        .with(
+            EnvFilter::builder()
+                .with_default_directive(LevelFilter::INFO.into())
+                .from_env_lossy(),
+        )
+        .with(fmt_layer)
+        .init();
 
     tracing::info!("Initializing app");
 

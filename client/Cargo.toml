@@ -14,6 +14,7 @@ default = ["console_error_panic_hook"]
 [dependencies]
 orion-shared = { path = "../shared" }
 wasm-bindgen = "0.2.63"
+wasm-bindgen-futures = "0.4"
 
 # The `console_error_panic_hook` crate provides better debugging of panics by
 # logging them with `console.error`. This is great for development, but requires
@@ -33,8 +34,9 @@ itertools.workspace = true
 
 getrandom = { version = "0.2.8", features = ["js"] }
 web-sys = { version = "0.3.61", features = [
-    "CanvasRenderingContext2d",
     "Element",
+    "CanvasRenderingContext2d",
+    "Document",
     "HtmlDocument",
     "HtmlCanvasElement",
     "Window",
@@ -46,6 +48,10 @@ web-sys = { version = "0.3.61", features = [
 # ] }
 # rustls = "0.20"
 winit = "0.28"
+
+wgpu = { version = "0.15", features = ["webgl"] }
+
+
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["time"] }
 tracing-web = "0.1"

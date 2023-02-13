@@ -40,7 +40,6 @@ impl Game {
     }
 
     pub fn render(&self, canvas: HtmlCanvasElement) {
-        eprintln!("Rendering");
 
         let context = canvas
             .get_context("2d")

@@ -1,9 +1,8 @@
 use std::{future::Future, sync::Arc};
 
 use once_cell::sync::Lazy;
-use time::Duration;
 use tokio::runtime::{self, Runtime};
-use tracing::{info_span, metadata::LevelFilter};
+use tracing::metadata::LevelFilter;
 use tracing_subscriber::{fmt::time::UtcTime, prelude::*, registry, EnvFilter};
 use tracing_web::MakeConsoleWriter;
 use wasm_bindgen::prelude::wasm_bindgen;
@@ -17,16 +16,11 @@ use winit::{
 use crate::{graphics::Gpu, renderer::Renderer, utils, Game};
 
 /// Provides a tokio runtime to the future without blocking the browser's executor
-pub fn with_tokio_runtime(fut: impl Future<Output = ()>) -> impl Future<Output = ()> {
+pub fn with_tokio_runtime(future: impl Future<Output = ()>) -> impl Future<Output = ()> {
     static RUNTIME: Lazy<Runtime> =
         Lazy::new(|| runtime::Builder::new_current_thread().build().unwrap());
 
-    tokio_util::context::TokioContext::new(fut, RUNTIME.handle().clone())
-}
-
-#[wasm_bindgen(start)]
-async fn main() {
-    with_tokio_runtime(run()).await
+    tokio_util::context::TokioContext::new(future, RUNTIME.handle().clone())
 }
 
 pub async fn run() {

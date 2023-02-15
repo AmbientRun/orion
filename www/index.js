@@ -40,14 +40,18 @@ export async function run() {
   let wasm = await WebAssembly.compileStreaming(fetch(wasmModule));
   console.log("Compiled wasm module")
   /// Instantiate the wasm module into a stateful executable
-  let inst = await WebAssembly.instantiate(wasm, {
+  let instance = await WebAssembly.instantiate(wasm, {
     "wasi_snapshot_preview1": wasi.wasiImport,
   });
 
   console.log("Instantiated wasm module")
-  console.log({ exports: inst.exports });
-  let exitCode = wasi.start(inst)
-  console.log(`Exited with code: ${exitCode}`);
+  console.log({ exports: instance.exports });
+  // let exitCode = wasi.start(inst)
+
+  wasi.inst = instance;
+  let ret = instance.exports.run();
+
+  console.log(`Returned: ${ret}`);
 
   // console.log("Initializing wasm")
 

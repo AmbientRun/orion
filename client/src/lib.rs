@@ -1,15 +1,26 @@
-mod game;
-pub mod graphics;
-pub mod renderer;
-pub mod utils;
-mod wasm;
+// mod game;
+// pub mod graphics;
+// pub mod renderer;
+// pub mod utils;
+// mod wasm;
 
-use std::time::Duration;
+#[no_mangle]
+pub extern "C" fn run() -> i32 {
+    println!("Hello from Rust");
+    1
+}
 
-pub use game::*;
+// #[no_mangle]
+// pub extern "C" fn run_async() -> Box<dyn Future<Output = ()>> {
+//     Box::new(async move {})
+// }
 
-use wasm::{run, with_tokio_runtime};
-use wasm_bindgen::prelude::*;
+// use std::{future::Future, time::Duration};
+
+// pub use game::*;
+
+// use wasm::{run, with_tokio_runtime};
+// use wasm_bindgen::prelude::*;
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.

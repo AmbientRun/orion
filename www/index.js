@@ -28,9 +28,11 @@ export async function run() {
   // Run the start function
   let exitCode = wasi.start();
   let stdout = wasi.getStdoutString();
+  let stderr = wasi.getStderrString();
 
   // This should print "hello world (exit code: 0)"
-  console.log(`${stdout}(exit code: ${exitCode})`);
+  // console.log(`${stdout(exit code: ${ exitCode })`);
+  console.log({ stdout, stderr, exitCode })
   // let args = ["bin", "arg1", "arg2"];
   // let env = ["FOO=bar"];
   // let fds = [
@@ -57,7 +59,7 @@ export async function run() {
 
 
 // let game = wasm.Game.new()
-// console.log(`Created new game: ${game}`)
+// console.log(`Created new game: ${ game }`)
 
 // canvas.width = document.body.clientWidth;
 // canvas.height = document.body.clientHeight;

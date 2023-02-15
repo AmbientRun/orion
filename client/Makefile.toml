@@ -1,0 +1,7 @@
+[tasks.build]
+command = "cargo"
+args = ["build", "-p", "orion-client"]
+
+[tasks.bundle]
+dependencies = ["build"]
+script = "cp ./target/wasm32-wasi/debug/orion-client.wasm ./www/orion-client.wasm"

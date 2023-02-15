@@ -4,13 +4,15 @@
 // pub mod utils;
 // mod wasm;
 
+use std::future::Future;
+
 #[no_mangle]
 pub extern "C" fn run() -> i32 {
     println!("Hello from Rust");
-    1
+    5
 }
 
-// #[no_mangle]
+#[no_mangle]
 // pub extern "C" fn run_async() -> Box<dyn Future<Output = ()>> {
 //     Box::new(async move {})
 // }

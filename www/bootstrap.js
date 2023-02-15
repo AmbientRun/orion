@@ -5,6 +5,8 @@
 import("./index.js")
   .catch(e => console.error("Error importing `index.js`:", e)).then(v => v.run());
 
+// import("./exec_wasmer.js")
+//   .catch(e => console.error("Error importing `exec_wasmer.js`:", e)).then(v => v.run());
 // import("./orion_client.wasm")
 //   .then(exports => {
 //     console.log({ exports })

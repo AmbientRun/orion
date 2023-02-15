@@ -1,7 +1,4 @@
 {
-  "build": {
-    "cmd": "wasm-pack build client --dev"
-  },
   "run": {
     "cmd": "npm run start --open",
     "cwd": "www",

@@ -2,13 +2,5 @@
 // asynchronously. This `bootstrap.js` file does the single async import, so
 // that no one else needs to worry about it again.
 
-import("./index.js")
+import("orion-client")
   .catch(e => console.error("Error importing `index.js`:", e)).then(v => v.run());
-
-// import("./exec_wasmer.js")
-//   .catch(e => console.error("Error importing `exec_wasmer.js`:", e)).then(v => v.run());
-// import("./orion_client.wasm")
-//   .then(exports => {
-//     console.log({ exports })
-//     exports.start()
-//   });

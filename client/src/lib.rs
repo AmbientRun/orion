@@ -1,7 +1,7 @@
 mod game;
 pub mod graphics;
 pub mod renderer;
-mod utils;
+pub mod utils;
 mod wasm;
 
 use std::time::Duration;

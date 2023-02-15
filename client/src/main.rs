@@ -6,6 +6,7 @@ fn main() {
     println!("Hello, World!");
     let now = Utc::now();
     println!("The time is now: {now:?}");
+    panic!("Is this good enough for you?");
     // let dur = Duration::from_millis(500);
     // loop {
     // std::thread::sleep(std::time::Duration::from_millis(500));

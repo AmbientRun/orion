@@ -26,7 +26,13 @@ export async function run() {
   await wasi.instantiate(module, {});
 
   // Run the start function
-  let exitCode = wasi.start();
+  let exitCode
+  try {
+    exitCode = wasi.start();
+
+  } catch (error) {
+    console.log(`Failed run wasi module:\n${error}`)
+  }
   let stdout = wasi.getStdoutString();
   let stderr = wasi.getStderrString();
 

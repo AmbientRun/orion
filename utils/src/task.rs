@@ -1,4 +1,4 @@
-use std::{future::Future, time::Duration};
+use std::{future::Future, process::Output, time::Duration};
 
 use futures::FutureExt;
 
@@ -19,11 +19,11 @@ pub async fn sleep(dur: Duration) {
     platform::task::sleep(dur).await
 }
 
-#[derive(thiserror::Error, Debug, Clone)]
+#[derive(thiserror::Error, Debug, Clone, PartialEq, Eq)]
 pub enum JoinError {
     #[error("The future was aborted")]
     Aborted,
-    #[error("The future pancked")]
+    #[error("The future panicked")]
     #[allow(dead_code)]
     Panicked,
 }

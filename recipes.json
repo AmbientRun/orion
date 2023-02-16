@@ -1,4 +1,12 @@
 {
+  "build": {
+    "cmd": "make build",
+    "components": {
+      "qf": {
+        "compiler": "cargo"
+      }
+    }
+  },
   "run": {
     "cmd": "npm run start --open",
     "cwd": "www",

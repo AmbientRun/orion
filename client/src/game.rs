@@ -1,12 +1,10 @@
-use std::{f32::consts::TAU, f64::consts::PI, sync::Arc};
+use std::{f32::consts::TAU, sync::Arc};
 
-use glam::{vec2, Vec2, Vec3};
+use glam::{vec2, Vec2};
 use itertools::Itertools;
 use orion_shared::Asteroid;
 use rand::{thread_rng, Rng};
-use wasm_bindgen::{prelude::wasm_bindgen, JsCast};
-use web_sys::HtmlCanvasElement;
-use wgpu::{BindGroup, CommandEncoder, RenderPass, Sampler, TextureView};
+use wgpu::{BindGroup, RenderPass, Sampler, TextureView};
 
 use crate::graphics::{Gpu, Mesh, Shader, ShaderDesc, Texture, Vertex};
 

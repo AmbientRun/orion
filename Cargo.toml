@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["client", "server", "shared"]
+members = ["client", "server", "shared", "async_utils"]
 
 [workspace.dependencies]
 

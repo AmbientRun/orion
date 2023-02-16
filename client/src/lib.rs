@@ -1,6 +1,5 @@
 use std::{sync::Arc, time::Duration};
 
-use time::*;
 use tracing::metadata::LevelFilter;
 use tracing_subscriber::{
     fmt::time::UtcTime, prelude::__tracing_subscriber_SubscriberExt, registry,
@@ -20,7 +19,6 @@ use crate::{game::Game, graphics::Gpu, renderer::Renderer};
 mod game;
 pub mod graphics;
 pub mod renderer;
-mod util;
 // mod wasm;
 
 // pub extern "C" fn run_async() -> Box<dyn Future<Output = ()>> {
@@ -49,7 +47,7 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 #[wasm_bindgen]
 pub async fn run() {
-    util::set_panic_hook();
+    async_utils::set_panic_hook();
     let fmt_layer = tracing_subscriber::fmt::layer()
         .with_ansi(false) // Only partially supported across browsers
         .with_timer(UtcTime::rfc_3339()) // std::time is not available in browsers
@@ -66,7 +64,7 @@ pub async fn run() {
 
     tracing::info!("Running app");
 
-    let task1 = util::spawn(async move {
+    let _task1 = async_utils::task::spawn(async move {
         loop {
             gloo::timers::future::sleep(Duration::from_millis(1000)).await;
             tracing::info!("Hello again");
@@ -74,12 +72,12 @@ pub async fn run() {
         }
     });
 
-    let task2 = util::spawn(async move {
+    let task2 = async_utils::task::spawn(async move {
         gloo::timers::future::sleep(Duration::from_millis(5000)).await;
         "Hello from setTimeout".to_string()
     });
 
-    let task3 = util::spawn(futures::future::pending::<()>());
+    let task3 = async_utils::task::spawn(futures::future::pending::<()>());
 
     let result = task2.await;
     tracing::info!("Got: {result:?}");

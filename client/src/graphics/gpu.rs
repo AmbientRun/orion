@@ -1,13 +1,6 @@
-use std::borrow::Cow;
-
 use tracing::info_span;
-use wgpu::{
-    CommandEncoder, PipelineLayout, RenderPipeline, SurfaceCapabilities, SurfaceConfiguration,
-    TextureFormat, TextureView,
-};
+use wgpu::{CommandEncoder, SurfaceCapabilities, SurfaceConfiguration, TextureFormat, TextureView};
 use winit::{dpi::PhysicalSize, event::WindowEvent, window::Window};
-
-use crate::renderer::Renderer;
 
 pub struct Gpu {
     surface: wgpu::Surface,
@@ -126,7 +119,7 @@ impl Gpu {
         }
     }
 
-    pub fn input(&mut self, event: &WindowEvent) -> bool {
+    pub fn input(&mut self, _event: &WindowEvent) -> bool {
         false
     }
 

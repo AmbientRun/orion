@@ -1,35 +1,22 @@
 use std::{
     future::Future,
-    panic::{catch_unwind, UnwindSafe},
     pin::Pin,
     sync::{
         atomic::{AtomicBool, Ordering},
         Arc,
     },
     task::{Poll, Waker},
+    time::Duration,
 };
 
 use futures::{
-    channel::oneshot,
-    future::{abortable, ready},
-    stream::{AbortHandle, Abortable, Aborted},
-    FutureExt,
+    future::abortable,
+    stream::{AbortHandle, Abortable},
 };
-use once_cell::sync::OnceCell;
 use parking_lot::Mutex;
 use pin_project::{pin_project, pinned_drop};
 
-pub fn set_panic_hook() {
-    // When the `console_error_panic_hook` feature is enabled, we can call the
-    // `set_panic_hook` function at least once during initialization, and then
-    // we will get better error messages if our code ever panics.
-    //
-    // For more details see
-    // https://github.com/rustwasm/console_error_panic_hook#readme
-    #[cfg(feature = "console_error_panic_hook")]
-    console_error_panic_hook::set_once();
-}
-
+use crate::task::JoinError;
 /// Spawns a new background task
 pub fn spawn<F, T>(fut: F) -> JoinHandle<T>
 where
@@ -87,7 +74,7 @@ impl<F, T> PinnedDrop for WrappedFuture<F, T> {
     fn drop(self: Pin<&mut Self>) {
         let mut res = self.state.res.lock();
         if res.is_none() {
-            // Cancelled on the behalf of the executor
+            // Cancelled on behalf of the executor
             *res = Some(Err(JoinError::Aborted));
 
             self.state.wake();
@@ -118,15 +105,6 @@ where
     }
 }
 
-#[derive(thiserror::Error, Debug, Clone)]
-pub enum JoinError {
-    #[error("The future was aborted")]
-    Aborted,
-    #[error("The future pancked")]
-    #[allow(dead_code)]
-    Panicked,
-}
-
 pub struct JoinHandle<T> {
     state: Arc<InnerState<T>>,
     abort: AbortHandle,
@@ -141,6 +119,11 @@ impl<T> JoinHandle<T> {
     pub fn is_finished(&self) -> bool {
         self.state.res.lock().is_some()
     }
+}
+
+#[inline]
+pub async fn sleep(dur: Duration) {
+    gloo::timers::future::sleep(dur).await
 }
 
 impl<T> Future for JoinHandle<T> {

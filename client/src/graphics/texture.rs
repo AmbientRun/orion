@@ -18,7 +18,7 @@ impl Texture {
             image.height(),
             TextureFormat::Rgba8UnormSrgb,
             TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_DST,
-            &*image.to_rgba8(),
+            &image.to_rgba8(),
         )
     }
 

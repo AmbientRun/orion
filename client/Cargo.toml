@@ -12,6 +12,7 @@ default = ["console_error_panic_hook"]
 
 [dependencies]
 orion-shared = { path = "../shared" }
+async-utils = { path = "../async_utils" }
 wasm-bindgen = "0.2.63"
 wasm-bindgen-futures = "0.4"
 

@@ -31,3 +31,9 @@ impl Renderer {
         game.render(&mut render_pass)
     }
 }
+
+impl Default for Renderer {
+    fn default() -> Self {
+        Self::new()
+    }
+}

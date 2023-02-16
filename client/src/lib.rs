@@ -1,4 +1,4 @@
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
 
 use tracing::metadata::LevelFilter;
 use tracing_subscriber::{
@@ -6,7 +6,6 @@ use tracing_subscriber::{
     util::SubscriberInitExt, EnvFilter,
 };
 use tracing_web::*;
-use utils::task::{sleep, JoinError};
 use wasm_bindgen::prelude::*;
 use winit::{
     event::*,
@@ -20,64 +19,12 @@ use crate::{game::Game, graphics::Gpu, renderer::Renderer};
 mod game;
 pub mod graphics;
 pub mod renderer;
-// mod wasm;
-
-// pub extern "C" fn run_async() -> Box<dyn Future<Output = ()>> {
-//     Box::new(async move {})
-// }
-
-// use std::{future::Future, time::Duration};
-
-// pub use game::*;
-
-// use tracing::metadata::LevelFilter;
-// use tracing_subscriber::{
-//     fmt::time::UtcTime, prelude::__tracing_subscriber_SubscriberExt, registry,
-//     util::SubscriberInitExt, EnvFilter,
-// };
-// use tracing_web::MakeConsoleWriter;
-// use wasm::with_tokio_runtime;
-// use wasm_bindgen::prelude::wasm_bindgen;
-// use wasm_bindgen::prelude::*;
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
 #[cfg(feature = "wee_alloc")]
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
-
-async fn task_tests() {
-    let task1 = utils::task::spawn(async move {
-        loop {
-            gloo::timers::future::sleep(Duration::from_millis(1000)).await;
-            tracing::info!("Hello again");
-            // async_std::task::sleep(std::time::Duration::from_secs(1)).await;
-        }
-    });
-
-    let task2 = utils::task::spawn(async move {
-        gloo::timers::future::sleep(Duration::from_millis(5000)).await;
-        "Hello from setTimeout".to_string()
-    });
-
-    let task3 = utils::task::spawn(futures::future::pending::<()>());
-
-    let result = task2.await;
-    tracing::info!("Got: {result:?}");
-    task3.abort();
-
-    let value = task3.await;
-    assert!(matches!(value, Err(JoinError::Aborted)));
-    tracing::info!("Got task3: {:?}", value);
-
-    task1.abort();
-
-    sleep(Duration::from_millis(1000)).await;
-
-    tracing::info!("task1 finished: {}", task1.is_finished());
-
-    tracing::info!("Finished waiting on tasks");
-}
 
 #[wasm_bindgen]
 pub async fn run() {
@@ -95,8 +42,6 @@ pub async fn run() {
         )
         .with(fmt_layer)
         .init();
-
-    utils::task::spawn(task_tests());
 
     tracing::info!("Running app");
 

@@ -6,6 +6,7 @@ use tracing_subscriber::{
     util::SubscriberInitExt, EnvFilter,
 };
 use tracing_web::*;
+use utils::task::{sleep, JoinError};
 use wasm_bindgen::prelude::*;
 use winit::{
     event::*,
@@ -45,9 +46,42 @@ pub mod renderer;
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
+async fn task_tests() {
+    let task1 = utils::task::spawn(async move {
+        loop {
+            gloo::timers::future::sleep(Duration::from_millis(1000)).await;
+            tracing::info!("Hello again");
+            // async_std::task::sleep(std::time::Duration::from_secs(1)).await;
+        }
+    });
+
+    let task2 = utils::task::spawn(async move {
+        gloo::timers::future::sleep(Duration::from_millis(5000)).await;
+        "Hello from setTimeout".to_string()
+    });
+
+    let task3 = utils::task::spawn(futures::future::pending::<()>());
+
+    let result = task2.await;
+    tracing::info!("Got: {result:?}");
+    task3.abort();
+
+    let value = task3.await;
+    assert!(matches!(value, Err(JoinError::Aborted)));
+    tracing::info!("Got task3: {:?}", value);
+
+    task1.abort();
+
+    sleep(Duration::from_millis(1000)).await;
+
+    tracing::info!("task1 finished: {}", task1.is_finished());
+
+    tracing::info!("Finished waiting on tasks");
+}
+
 #[wasm_bindgen]
 pub async fn run() {
-    async_utils::set_panic_hook();
+    utils::set_panic_hook();
     let fmt_layer = tracing_subscriber::fmt::layer()
         .with_ansi(false) // Only partially supported across browsers
         .with_timer(UtcTime::rfc_3339()) // std::time is not available in browsers
@@ -62,30 +96,9 @@ pub async fn run() {
         .with(fmt_layer)
         .init();
 
+    utils::task::spawn(task_tests());
+
     tracing::info!("Running app");
-
-    let _task1 = async_utils::task::spawn(async move {
-        loop {
-            gloo::timers::future::sleep(Duration::from_millis(1000)).await;
-            tracing::info!("Hello again");
-            // async_std::task::sleep(std::time::Duration::from_secs(1)).await;
-        }
-    });
-
-    let task2 = async_utils::task::spawn(async move {
-        gloo::timers::future::sleep(Duration::from_millis(5000)).await;
-        "Hello from setTimeout".to_string()
-    });
-
-    let task3 = async_utils::task::spawn(futures::future::pending::<()>());
-
-    let result = task2.await;
-    tracing::info!("Got: {result:?}");
-    task3.abort();
-
-    tracing::info!("Got task3: {:?}", task3.await);
-
-    tracing::info!("Finished waiting on tasks");
 
     let event_loop = EventLoop::new();
 
@@ -99,7 +112,7 @@ pub async fn run() {
     let gpu = Arc::new(Gpu::new(window).await);
     let mut renderer = Renderer::new();
 
-    let game = Game::new(gpu.clone());
+    let game = Game::new(gpu.clone()).await.unwrap();
 
     event_loop.spawn(move |event, _, control_flow| match event {
         Event::WindowEvent {

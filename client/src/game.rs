@@ -19,7 +19,7 @@ pub struct Game {
 }
 
 impl Game {
-    pub fn new(gpu: Arc<Gpu>) -> Self {
+    pub async fn new(gpu: Arc<Gpu>) -> anyhow::Result<Self> {
         let mut rng = thread_rng();
 
         let asteroids = (0..16)
@@ -62,7 +62,22 @@ impl Game {
             });
 
         let square = Mesh::square(&gpu);
-        let image = image::load_from_memory(include_bytes!("../assets/asteroid.png")).unwrap();
+
+        tracing::info!("Downloading asteroid texture");
+
+        let image = reqwest::Client::builder()
+            .build()?
+            .get("https://dims-content.fra1.digitaloceanspaces.com/assets%2Forion%2Fasteroid.png")
+            // .get("https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Mona_Lisa%2C_by_Leonardo_da_Vinci%2C_from_C2RMF_retouched.jpg/1200px-Mona_Lisa%2C_by_Leonardo_da_Vinci%2C_from_C2RMF_retouched.jpg")
+            .send()
+            .await?
+            .bytes()
+            .await?;
+
+        tracing::info!("Downloaded asteroid texture");
+
+        let image = image::load_from_memory(&image).unwrap();
+
         let asteroid_texture = Texture::from_image(&gpu, image).create_view();
 
         let sampler = gpu.device.create_sampler(&wgpu::SamplerDescriptor {
@@ -99,7 +114,7 @@ impl Game {
             },
         );
 
-        Self {
+        Ok(Self {
             asteroids,
             gpu,
             shader,
@@ -107,7 +122,7 @@ impl Game {
             asteroid_texture,
             sampler,
             asteroid_bind_group,
-        }
+        })
     }
 
     pub fn update(&mut self, dt: f32) {

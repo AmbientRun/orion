@@ -1,12 +1,17 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
+use anyhow::Context;
+use futures::FutureExt;
+use tokio::select;
 use tracing::metadata::LevelFilter;
 use tracing_subscriber::{
     fmt::time::UtcTime, prelude::__tracing_subscriber_SubscriberExt, registry,
     util::SubscriberInitExt, EnvFilter,
 };
 use tracing_web::*;
+use utils::task::{sleep, spawn};
 use wasm_bindgen::prelude::*;
+use web_sys::window;
 use winit::{
     event::*,
     event_loop::{ControlFlow, EventLoop},
@@ -16,6 +21,7 @@ use winit::{
 
 use crate::{game::Game, graphics::Gpu, renderer::Renderer};
 
+mod camera;
 mod game;
 pub mod graphics;
 pub mod renderer;
@@ -26,9 +32,8 @@ pub mod renderer;
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
-#[wasm_bindgen]
-pub async fn run() {
-    utils::set_panic_hook();
+#[wasm_bindgen(start)]
+pub async fn start() {
     let fmt_layer = tracing_subscriber::fmt::layer()
         .with_ansi(false) // Only partially supported across browsers
         .with_timer(UtcTime::rfc_3339()) // std::time is not available in browsers
@@ -37,15 +42,50 @@ pub async fn run() {
     registry()
         .with(
             EnvFilter::builder()
-                .with_default_directive(LevelFilter::INFO.into())
+                .with_default_directive(LevelFilter::DEBUG.into())
                 .from_env_lossy(),
         )
         .with(fmt_layer)
         .init();
 
+    utils::set_panic_hook();
+
+    match run().await {
+        Ok(()) => {}
+        Err(err) => tracing::error!("{err:?}"),
+    }
+}
+
+pub async fn run() -> anyhow::Result<()> {
     tracing::info!("Running app");
 
+    //     let mut a = utils::task::spawn(async {
+    //         sleep(Duration::from_millis(500)).await;
+    //     });
+
+    //     let mut b = utils::task::spawn(async {
+    //         sleep(Duration::from_millis(1000)).await;
+    //     });
+
+    //     spawn(async move {
+    //         loop {
+    //             tokio::select! {
+    //                 _ = &mut a => {
+    //                     tracing::info!("A completed");
+    //                 },
+    //                 _ = &mut b => {
+    //                     tracing::info!("B completed");
+    //                 }
+    //             }
+    //         }
+    //     });
+
     let event_loop = EventLoop::new();
+
+    let perf = window()
+        .context("Missing window")?
+        .performance()
+        .context("Performance missing")?;
 
     let window = WindowBuilder::new()
         .with_title("Winit window")
@@ -57,7 +97,11 @@ pub async fn run() {
     let gpu = Arc::new(Gpu::new(window).await);
     let mut renderer = Renderer::new();
 
-    let game = Game::new(gpu.clone()).await.unwrap();
+    let mut game = Game::new(gpu.clone()).await.unwrap();
+
+    let mut current_time = perf.now() / 1000.0;
+    let mut acc = 0.0;
+    let dt = 1.0 / 50.0;
 
     event_loop.spawn(move |event, _, control_flow| match event {
         Event::WindowEvent {
@@ -87,7 +131,7 @@ pub async fn run() {
             _ => {}
         },
         Event::RedrawRequested(window_id) if window_id == gpu.window().id() => {
-            match gpu.render(|encoder, view| renderer.render(encoder, view, &game)) {
+            match gpu.render(|encoder, view| renderer.render(encoder, view, &mut game)) {
                 Ok(_) => {}
                 // Reconfigure the surface if lost
                 Err(wgpu::SurfaceError::Lost) => gpu.resize(gpu.size()),
@@ -98,12 +142,26 @@ pub async fn run() {
             }
         }
         Event::MainEventsCleared => {
+            let new_time = perf.now() / 1000.0;
+
+            let frame_time = new_time - current_time;
+            current_time = new_time;
+
+            acc += frame_time;
+
+            while acc >= dt {
+                game.update(dt as _);
+                acc -= dt;
+            }
+
             // RedrawRequested will only trigger once, unless we manually
             // request it.
             gpu.window().request_redraw();
         }
         _ => {}
     });
+
+    Ok(())
 }
 
 pub fn insert_canvas(window: &Window) {

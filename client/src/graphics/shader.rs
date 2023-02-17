@@ -1,13 +1,17 @@
 use std::borrow::Cow;
 
-use wgpu::{RenderPipeline, TextureFormat, VertexBufferLayout};
+use wgpu::{
+    BindGroupLayout, PipelineLayoutDescriptor, RenderPipeline, TextureFormat, VertexBufferLayout,
+};
 
 use super::Gpu;
 
 pub struct ShaderDesc<'a> {
+    pub label: &'a str,
     pub source: Cow<'a, str>,
     pub format: TextureFormat,
     pub vertex_layouts: Cow<'a, [VertexBufferLayout<'static>]>,
+    pub layouts: &'a [&'a BindGroupLayout],
 }
 
 pub struct Shader {
@@ -23,11 +27,19 @@ impl Shader {
                 source: wgpu::ShaderSource::Wgsl(desc.source),
             });
 
+        let layout = gpu
+            .device
+            .create_pipeline_layout(&PipelineLayoutDescriptor {
+                label: Some(desc.label),
+                bind_group_layouts: desc.layouts,
+                push_constant_ranges: &[],
+            });
+
         let pipeline = gpu
             .device
             .create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-                label: Some("Render Pipeline"),
-                layout: None,
+                label: Some(desc.label),
+                layout: Some(&layout),
                 vertex: wgpu::VertexState {
                     module: &shader,
                     entry_point: "vs_main",        // 1.

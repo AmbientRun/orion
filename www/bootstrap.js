@@ -3,4 +3,4 @@
 // that no one else needs to worry about it again.
 
 import("orion-client")
-  .catch(e => console.error("Error importing `index.js`:", e)).then(v => v.run());
+  .catch(e => console.error("Error importing `index.js`:", e));

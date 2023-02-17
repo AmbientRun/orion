@@ -1,21 +1,37 @@
 use std::{f32::consts::TAU, sync::Arc};
 
-use glam::{vec2, Vec2};
+use glam::{vec2, vec3, Mat4, Quat, Vec2, Vec3};
 use itertools::Itertools;
 use orion_shared::Asteroid;
 use rand::{thread_rng, Rng};
-use wgpu::{BindGroup, RenderPass, Sampler, TextureView};
+use wgpu::{BindGroup, BufferUsages, RenderPass, Sampler, ShaderStages, TextureView};
 
-use crate::graphics::{Gpu, Mesh, Shader, ShaderDesc, Texture, Vertex};
+use crate::{
+    camera::Camera,
+    graphics::{
+        BindGroupBuilder, BindGroupLayoutBuilder, Gpu, Mesh, Shader, ShaderDesc, Texture,
+        TypedBuffer, Vertex,
+    },
+};
+
+#[repr(C)]
+#[derive(bytemuck::Pod, bytemuck::Zeroable, Clone, Copy, Default, Debug)]
+struct Object {
+    model: Mat4,
+}
 
 pub struct Game {
     asteroids: Vec<Asteroid>,
+    object_data: Vec<Object>,
     gpu: Arc<Gpu>,
     shader: Shader,
     square: Mesh,
     asteroid_texture: TextureView,
+    camera_buffer: TypedBuffer<Camera>,
+    object_buffer: TypedBuffer<Object>,
     asteroid_bind_group: BindGroup,
     sampler: Sampler,
+    bounds: Vec2,
 }
 
 impl Game {
@@ -25,41 +41,18 @@ impl Game {
         let asteroids = (0..16)
             .map(|_| {
                 let dir = rng.gen_range(0.0..TAU);
-                let vel = vec2(dir.cos(), dir.sin()) * rng.gen_range(0.0..2.0);
+                let vel = vec2(dir.cos(), dir.sin()) * rng.gen_range(0.0..5.0);
+
                 Asteroid {
-                    size: rng.gen_range(10.0..20.0),
+                    radius: rng.gen_range(0.2..=2.0),
                     color: rng.gen(),
-                    pos: rng.gen::<Vec2>() * 512.0,
+                    pos: rng.gen::<Vec2>() * 12.0 - 6.0,
                     vel,
+                    rot: rng.gen_range(0.0..=TAU),
+                    ang_vel: rng.gen_range(-1.0..=1.0),
                 }
             })
             .collect_vec();
-
-        let object_layout = gpu
-            .device
-            .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                entries: &[
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Texture {
-                            multisampled: false,
-                            view_dimension: wgpu::TextureViewDimension::D2,
-                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                        },
-                        count: None,
-                    },
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 1,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        // This should match the filterable field of the
-                        // corresponding Texture entry above.
-                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                        count: None,
-                    },
-                ],
-                label: Some("texture_bind_group_layout"),
-            });
 
         let square = Mesh::square(&gpu);
 
@@ -90,27 +83,56 @@ impl Game {
             ..Default::default()
         });
 
-        let asteroid_bind_group = gpu.device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: &object_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::TextureView(&asteroid_texture),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::Sampler(&sampler),
-                },
-            ],
-            label: Some("diffuse_bind_group"),
-        });
+        let size = 10.0;
+        let window_size = gpu.window().inner_size();
+
+        let aspect = window_size.width as f32 / window_size.height as f32;
+
+        let bounds = vec2(size * aspect, size);
+
+        let camera = Camera::new(
+            Mat4::from_rotation_translation(Quat::IDENTITY, vec3(0.0, 0.0, 1.0)),
+            Mat4::orthographic_lh(-bounds.x, bounds.x, -bounds.y, bounds.y, 0.1, 1000.0),
+        );
+
+        let camera_buffer = TypedBuffer::new(
+            &gpu,
+            "camera_buffer",
+            BufferUsages::UNIFORM | BufferUsages::COPY_DST,
+            &[camera],
+        );
+
+        let object_data = vec![Default::default(); asteroids.len()];
+
+        let object_buffer = TypedBuffer::new(
+            &gpu,
+            "object_buffer",
+            BufferUsages::UNIFORM | BufferUsages::COPY_DST,
+            &object_data,
+        );
+
+        let asteroid_bind_group_layout = BindGroupLayoutBuilder::new("asteroid_bind_group_layout")
+            .bind_uniform_buffer(ShaderStages::VERTEX)
+            .bind_uniform_buffer(ShaderStages::VERTEX)
+            .bind_texture(ShaderStages::FRAGMENT)
+            .bind_sampler(ShaderStages::FRAGMENT)
+            .build(&gpu);
+
+        let asteroid_bind_group = BindGroupBuilder::new("asteroid_bind_group")
+            .bind_buffer(&camera_buffer)
+            .bind_buffer(&object_buffer)
+            .bind_texture(&asteroid_texture)
+            .bind_sampler(&sampler)
+            .build(&gpu, &asteroid_bind_group_layout);
 
         let shader = Shader::new(
             &gpu,
             ShaderDesc {
+                label: "asteroids",
                 source: include_str!("../assets/shaders.wgsl").into(),
                 format: gpu.surface_format(),
                 vertex_layouts: vec![Vertex::layout()].into(),
+                layouts: &[&asteroid_bind_group_layout],
             },
         );
 
@@ -122,21 +144,63 @@ impl Game {
             asteroid_texture,
             sampler,
             asteroid_bind_group,
+            camera_buffer,
+            object_data,
+            object_buffer,
+            bounds,
         })
     }
 
     pub fn update(&mut self, dt: f32) {
         for v in &mut self.asteroids {
             v.pos += v.vel * dt;
+            v.rot += v.ang_vel * dt;
+
+            // Handle wall collision
+
+            let right = self.bounds.x;
+            let top = self.bounds.y;
+
+            if v.pos.x + v.radius > right {
+                v.vel = vec2(-v.vel.x.abs(), v.vel.y);
+            }
+            if v.pos.x - v.radius < -right {
+                v.vel = vec2(v.vel.x.abs(), v.vel.y);
+            }
+
+            if v.pos.y + v.radius > top {
+                v.vel = vec2(v.vel.x, -v.vel.y.abs());
+            }
+            if v.pos.y - v.radius < -top {
+                v.vel = vec2(v.vel.x, v.vel.y.abs());
+            }
         }
     }
 
-    pub fn render<'a>(&'a self, render_pass: &mut RenderPass<'a>) {
+    pub fn render<'a>(&'a mut self, render_pass: &mut RenderPass<'a>) {
+        // Update the object data
+        self.object_data
+            .iter_mut()
+            .zip_eq(&self.asteroids)
+            .for_each(|(object, v)| {
+                object.model = Mat4::from_scale_rotation_translation(
+                    Vec3::ONE * 2.0 * v.radius,
+                    Quat::from_scaled_axis(Vec3::Z * v.rot),
+                    v.pos.extend(0.0),
+                );
+            });
+
+        self.object_buffer.write(&self.gpu.queue, &self.object_data);
+
         render_pass.set_pipeline(self.shader.pipeline());
         self.square.bind(render_pass);
 
         render_pass.set_bind_group(0, &self.asteroid_bind_group, &[]);
 
-        render_pass.draw_indexed(0..self.square.index_count(), 0, 0..1);
+        render_pass.draw_indexed(
+            0..self.square.index_count(),
+            0,
+            0..self.asteroids.len() as _,
+        );
     }
 }

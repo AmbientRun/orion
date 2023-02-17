@@ -21,6 +21,7 @@ use winit::{
 
 use crate::{game::Game, graphics::Gpu, renderer::Renderer};
 
+pub mod assets;
 mod camera;
 mod game;
 pub mod graphics;

@@ -150,3 +150,16 @@ impl<T> Future for JoinHandle<T> {
         }
     }
 }
+
+#[derive(Clone)]
+pub struct RuntimeHandle {}
+
+impl RuntimeHandle {
+    pub fn spawn<F, T>(&self, fut: F) -> JoinHandle<T>
+    where
+        F: 'static + Future<Output = T>,
+        T: 'static,
+    {
+        spawn(fut)
+    }
+}

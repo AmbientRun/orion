@@ -10,9 +10,7 @@ where
     F: 'static + Future<Output = T>,
     T: 'static,
 {
-    JoinHandle {
-        inner: platform::task::spawn(fut),
-    }
+    JoinHandle(platform::task::spawn(fut))
 }
 
 pub async fn sleep(dur: Duration) {
@@ -28,18 +26,23 @@ pub enum JoinError {
     Panicked,
 }
 
-pub struct JoinHandle<T> {
-    inner: platform::task::JoinHandle<T>,
+pub struct JoinHandle<T>(platform::task::JoinHandle<T>);
+
+#[cfg(not(target_arch = "wasm32"))]
+impl From<tokio::task::JoinHandle> for JoinHandle<T> {
+    fn from(value: tokio::task::JoinHandle) -> Self {
+        Self(value)
+    }
 }
 
 impl<T> JoinHandle<T> {
     pub fn abort(&self) {
-        self.inner.abort()
+        self.0.abort()
     }
 
     /// Returns true if the task is currently finished or aborted
     pub fn is_finished(&self) -> bool {
-        self.inner.is_finished()
+        self.0.is_finished()
     }
 }
 
@@ -50,6 +53,25 @@ impl<T> Future for JoinHandle<T> {
         mut self: std::pin::Pin<&mut Self>,
         cx: &mut std::task::Context<'_>,
     ) -> std::task::Poll<Self::Output> {
-        self.inner.poll_unpin(cx)
+        self.0.poll_unpin(cx)
+    }
+}
+
+pub struct AbortOnDrop<T>(JoinHandle<T>);
+
+impl<T> Future for AbortOnDrop<T> {
+    type Output = Result<T, JoinError>;
+
+    fn poll(
+        mut self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Self::Output> {
+        self.0.poll_unpin(cx)
+    }
+}
+
+impl<T> Drop for AbortOnDrop<T> {
+    fn drop(&mut self) {
+        self.0.abort();
     }
 }

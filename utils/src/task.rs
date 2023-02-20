@@ -1,16 +1,30 @@
-use std::{future::Future, time::Duration};
+use std::{future::Future, task::Poll, time::Duration};
 
 use futures::FutureExt;
 
-use crate::platform;
+use crate::{control::ControlHandle, platform};
 
 /// Spawns a new background task
 pub fn spawn<F, T>(fut: F) -> JoinHandle<T>
 where
-    F: 'static + Future<Output = T>,
-    T: 'static,
+    F: 'static + Send + Future<Output = T>,
+    T: 'static + Send,
 {
     JoinHandle(platform::task::spawn(fut))
+}
+
+/// Spawn a non-send future by sending a constructor to a worker thread.
+///
+/// The future will run to completion on the worker thread.
+///
+/// Returns a handle which can be used to control the future
+pub fn spawn_local<F, Fut, T>(func: F) -> ControlHandle<T>
+where
+    F: 'static + Fn() -> Fut + Send,
+    Fut: 'static + Future<Output = T>,
+    T: 'static + Send,
+{
+    platform::task::spawn_local(func)
 }
 
 pub async fn sleep(dur: Duration) {
@@ -26,14 +40,7 @@ pub enum JoinError {
     Panicked,
 }
 
-pub struct JoinHandle<T>(platform::task::JoinHandle<T>);
-
-#[cfg(not(target_arch = "wasm32"))]
-impl From<tokio::task::JoinHandle> for JoinHandle<T> {
-    fn from(value: tokio::task::JoinHandle) -> Self {
-        Self(value)
-    }
-}
+pub struct JoinHandle<T>(pub(crate) platform::task::JoinHandle<T>);
 
 impl<T> JoinHandle<T> {
     pub fn abort(&self) {
@@ -65,7 +72,7 @@ impl<T> Future for AbortOnDrop<T> {
     fn poll(
         mut self: std::pin::Pin<&mut Self>,
         cx: &mut std::task::Context<'_>,
-    ) -> std::task::Poll<Self::Output> {
+    ) -> Poll<Self::Output> {
         self.0.poll_unpin(cx)
     }
 }

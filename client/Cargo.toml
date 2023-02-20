@@ -14,6 +14,8 @@ elements_asset_cache = { path = "../asset_cache" }
 utils = { path = "../utils", features = ["console_error_panic_hook"] }
 wasm-bindgen = "0.2.63"
 wasm-bindgen-futures = "0.4"
+serde = "1.0"
+static_assertions = "1.1"
 async-trait.workspace = true
 
 # `wee_alloc` is a tiny allocator for wasm that is only ~1K in code size

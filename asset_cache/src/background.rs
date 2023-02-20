@@ -41,11 +41,12 @@ where
 
         let key = self.0.clone();
         let runtime = assets.runtime().clone();
-        let task = runtime.spawn(Box::pin(async move {
-            let v = key.get(&assets).await;
-            v
-        }));
+        todo!()
+        // let task = runtime.spawn(Box::pin(async move {
+        //     let v = key.get(&assets).await;
+        //     v
+        // }));
 
-        task.await.expect("Failed to wait for load task")
+        // task.await.expect("Failed to wait for load task")
     }
 }

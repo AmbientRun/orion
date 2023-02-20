@@ -1,4 +1,6 @@
+pub mod control;
 pub mod task;
+pub mod timer;
 
 /// Sets a panic hook which prints panics to the browser dev-console
 #[cfg(all(target_arch = "wasm32", feature = "console_error_panic_hook"))]
@@ -15,9 +17,6 @@ pub fn set_panic_hook() {
     }
 }
 
-#[cfg(target_arch = "wasm32")]
-#[path = "./wasm/mod.rs"]
-pub(crate) mod platform;
-#[cfg(not(target_arch = "wasm32"))]
-#[path = "./native/mod.rs"]
+#[cfg_attr(not(target_arch = "wasm32"), path = "./native/mod.rs")]
+#[cfg_attr(target_arch = "wasm32", path = "./wasm/mod.rs")]
 pub(crate) mod platform;

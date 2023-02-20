@@ -36,7 +36,7 @@ pub trait TaskSpawner: 'static + Send + Sync {
 #[cfg(not(target_arch = "wasm32"))]
 impl TaskSpawner for tokio::runtime::Handle {
     fn spawn(&self, fut: BoxFuture<'static, ()>) -> JoinHandle<()> {
-        self.spawn().into()
+        self.spawn(fut).into()
     }
 }
 
@@ -205,12 +205,12 @@ impl AssetCache {
         };
         {
             let assets = assets.clone();
-            spawner.spawn(Box::pin(async move {
-                loop {
-                    sleep(Duration::from_secs_f32(1.)).await;
-                    assets.clean_up_dropped();
-                }
-            }));
+            // spawner.spawn(Box::pin(async move {
+            //     loop {
+            //         sleep(Duration::from_secs_f32(1.)).await;
+            //         assets.clean_up_dropped();
+            //     }
+            // }));
         }
         assets
     }
@@ -370,7 +370,8 @@ impl AssetCache {
             // Spawn a task to keep running the shared future even if the key holder drops
             // their part of the future.
             let keepalive = if let AssetLoadDropPolicy::KeepLoading = drop_policy {
-                Some(self.runtime.spawn(fut.clone().map(|_| {})).into())
+                // Some(self.runtime.spawn(fut.clone().map(|_| {})).into())
+                todo!()
             } else {
                 None
             };
@@ -485,21 +486,21 @@ impl AssetCache {
                     dur = dur.min(max_keepalive);
                 }
 
-                let task = self.runtime.spawn(async move {
-                    sleep(dur).await;
-                    tracing::debug!("Keepalive timed out for {asset_key:?}");
-                    drop((keepalive_ref, guard));
-                });
+                // let task = self.runtime.spawn(async move {
+                //     sleep(dur).await;
+                //     tracing::debug!("Keepalive timed out for {asset_key:?}");
+                //     drop((keepalive_ref, guard));
+                // });
 
-                loc.keepalive_task = Some(task.into());
+                // loc.keepalive_task = Some(task.into());
             }
             AssetKeepalive::Forever => {
-                let task = self.runtime.spawn(async move {
-                    pending::<()>().await;
-                    drop((keepalive_ref, guard));
-                });
+                // let task = self.runtime.spawn(async move {
+                //     pending::<()>().await;
+                //     drop((keepalive_ref, guard));
+                // });
 
-                loc.keepalive_task = Some(task.into());
+                // loc.keepalive_task = Some(task.into());
             }
             _ => (),
         }
@@ -508,7 +509,7 @@ impl AssetCache {
     }
 
     pub fn runtime(&self) -> &Arc<dyn TaskSpawner> {
-        &self.runtime
+        &self.spawner
     }
 }
 
@@ -935,7 +936,7 @@ mod test {
 
     #[tokio::test]
     async fn load_aborted() {
-        let assets = AssetCache::new(runtime::Handle::current());
+        let assets = AssetCache::new(Arc::new(runtime::Handle::current()));
 
         let asset = timeout(
             Duration::from_millis(200),
@@ -981,7 +982,8 @@ mod test {
             }
         }
 
-        let assets = AssetCache::new(tokio::runtime::Handle::current());
+        let assets = AssetCache::new(Arc::new(tokio::runtime::Handle::current()));
+
         {
             let val = Key.get(&assets).await.unwrap();
             assert_eq!(*val, 1);

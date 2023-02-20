@@ -2,6 +2,7 @@ use std::{borrow::BorrowMut, marker::PhantomData, path::PathBuf, sync::Arc, time
 
 use anyhow::{anyhow, Context};
 use async_trait::async_trait;
+use elements_asset_cache::{AssetCache, AsyncAssetKey, SyncAssetKey, SyncAssetKeyExt};
 use futures::Future;
 use reqwest::Url;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -106,16 +107,16 @@ pub async fn download<T, F: Future<Output = anyhow::Result<T>>>(
 
 #[derive(Clone, Debug)]
 pub struct BytesFromUrl {
-    pub url: AbsAssetUrl,
+    pub url: String,
     pub cache_on_disk: bool,
 }
 impl BytesFromUrl {
-    pub fn new(url: AbsAssetUrl, cache_on_disk: bool) -> Self {
+    pub fn new(url: String, cache_on_disk: bool) -> Self {
         Self { url, cache_on_disk }
     }
     pub fn parse_url(url: impl AsRef<str>, cache_on_disk: bool) -> anyhow::Result<Self> {
         Ok(Self {
-            url: AbsAssetUrl::parse(url)?,
+            url: url.as_ref().into(),
             cache_on_disk,
         })
     }
@@ -123,15 +124,7 @@ impl BytesFromUrl {
 #[async_trait]
 impl AsyncAssetKey<AssetResult<Arc<Vec<u8>>>> for BytesFromUrl {
     async fn load(self, assets: AssetCache) -> AssetResult<Arc<Vec<u8>>> {
-        if let Some(path) = self.url.to_file_path()? {
-            return Ok(Arc::new(
-                tokio::fs::read(path)
-                    .await
-                    .context(format!("Failed to read file at: {:}", self.url.0))?,
-            ));
-        }
-
-        let body = download(&assets, self.url.0.clone(), |resp| async {
+        let body = download(&assets, self.url.clone(), |resp| async {
             Ok(resp.bytes().await?)
         })
         .await?

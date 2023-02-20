@@ -1,5 +1,6 @@
 pub mod control;
 pub mod task;
+pub mod time;
 pub mod timer;
 
 /// Sets a panic hook which prints panics to the browser dev-console

@@ -86,7 +86,7 @@ pub async fn run() -> anyhow::Result<()> {
     let perf = window()
         .context("Missing window")?
         .performance()
-        .context("Performance missing")?;
+        .context("Performance missing")?;time
 
     let window = WindowBuilder::new()
         .with_title("Winit window")

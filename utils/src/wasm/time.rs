@@ -1,11 +1,33 @@
-use std::time::Duration;
+use std::{
+    mem,
+    ops::{Add, Sub},
+    time::Duration,
+};
 
-use derive_more::{Add, AddAssign, Sub};
 use ordered_float::NotNan;
 
 /// Represents an abstract point in time
-#[derive(Debug, Clone, Add, AddAssign, Sub, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Instant(NotNan<f64>);
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Instant(
+    /// Time in milliseconds
+    NotNan<f64>,
+);
+
+impl Sub for Instant {
+    type Output = Duration;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        Duration::from_nanos(((*self.0 - *rhs.0).max(0.0) * 1e6) as _)
+    }
+}
+
+impl Add<Duration> for Instant {
+    type Output = Self;
+
+    fn add(self, rhs: Duration) -> Self::Output {
+        Self(NotNan::new(*self.0 + rhs.as_nanos() as f64 / 1e6).unwrap())
+    }
+}
 
 impl Instant {
     #[cfg(not(test))]
@@ -21,6 +43,11 @@ impl Instant {
 
     #[inline]
     pub fn duration_since(&self, earlier: Self) -> Duration {
-        Duration::from_nanos(((*self.0 - *earlier.0).min(0.0) * 1e6) as _)
+        Duration::from_nanos(((*self.0 - *earlier.0).max(0.0) * 1e6) as _)
     }
+}
+
+pub fn schedule_wakeup<F: 'static + Send + FnOnce()>(dur: Duration, callback: F) {
+    let timer = gloo::timers::callback::Timeout::new(dur.as_millis().try_into().unwrap(), callback);
+    mem::forget(timer);
 }

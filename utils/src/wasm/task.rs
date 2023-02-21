@@ -36,9 +36,18 @@ where
 
 pub type JoinHandle<T> = ControlHandle<T>;
 
+pub async fn wasm_nonsend<F, Fut, T>(func: F) -> T
+where
+    F: 'static + FnOnce() -> Fut + Send,
+    Fut: 'static + Future<Output = T>,
+    T: 'static + Send,
+{
+    spawn_local(func).await.unwrap()
+}
+
 pub fn spawn_local<F, Fut, T>(func: F) -> ControlHandle<T>
 where
-    F: 'static + Fn() -> Fut + Send,
+    F: 'static + FnOnce() -> Fut + Send,
     Fut: 'static + Future<Output = T>,
     T: 'static + Send,
 {

@@ -9,7 +9,10 @@ use tracing_subscriber::{
     util::SubscriberInitExt, EnvFilter,
 };
 use tracing_web::*;
-use utils::task::{sleep, spawn};
+use utils::{
+    task::spawn,
+    timer::{self, sleep},
+};
 use wasm_bindgen::prelude::*;
 use web_sys::window;
 use winit::{
@@ -51,6 +54,14 @@ pub async fn start() {
 
     utils::set_panic_hook();
 
+    spawn(timer::TimerWheel::new().start());
+
+    tracing::info!("Sleeping...");
+    sleep(Duration::from_secs(1)).await;
+    tracing::info!("Finished sleeping");
+
+    return;
+
     match run().await {
         Ok(()) => {}
         Err(err) => tracing::error!("{err:?}"),
@@ -86,7 +97,7 @@ pub async fn run() -> anyhow::Result<()> {
     let perf = window()
         .context("Missing window")?
         .performance()
-        .context("Performance missing")?;time
+        .context("Performance missing")?;
 
     let window = WindowBuilder::new()
         .with_title("Winit window")

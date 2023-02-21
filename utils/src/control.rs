@@ -99,10 +99,12 @@ where
         let p = self.project();
 
         if p.state.aborted.load(Ordering::Relaxed) {
-            // TODO
-        }
+            let mut res = p.state.res.lock();
+            *res = Some(Err(JoinError::Aborted));
 
-        if let Poll::Ready(value) = p.fut.poll(cx) {
+            p.state.wake();
+            Poll::Ready(())
+        } else if let Poll::Ready(value) = p.fut.poll(cx) {
             let mut res = p.state.res.lock();
             assert!(res.is_none(), "Future completed twice");
             *res = Some(Ok(value));
@@ -174,7 +176,7 @@ where
     )
 }
 
-/// Obtain a control handle and a contract which allows you to associate and control a future with
+/// Obtain a control handle and a permit which allows you to associate and control a future with
 /// the returned [`ControlHandle`].
 pub fn control_deferred<T>() -> (ControlHandle<T>, ControlRegistration<T>)
 where

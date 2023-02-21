@@ -8,6 +8,7 @@ use reqwest::Url;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use thiserror::Error;
 use tokio::sync::Semaphore;
+use utils::task::wasm_nonsend;
 
 pub type AssetResult<T> = Result<T, AssetError>;
 
@@ -56,12 +57,13 @@ impl SyncAssetKey<reqwest::Client> for ReqwestClientKey {
 }
 
 /// Download with retries and a global rate limiting sempahore
-pub async fn download<T, F: Future<Output = anyhow::Result<T>>>(
+pub async fn download<T: 'static + Send, F: 'static + Future<Output = anyhow::Result<T>>>(
     assets: &AssetCache,
-    url: impl reqwest::IntoUrl,
-    map: impl Fn(reqwest::Response) -> F,
+    url: impl 'static + reqwest::IntoUrl + Send,
+    map: impl 'static + Fn(reqwest::Response) -> F + Send,
 ) -> anyhow::Result<T> {
-    let client = ReqwestClientKey.get(assets);
+    let assets = assets.clone();
+
     let url_str = url.as_str().to_string();
     let url_short = if url_str.len() > 200 {
         format!("{}...", &url_str[..200])
@@ -70,39 +72,45 @@ pub async fn download<T, F: Future<Output = anyhow::Result<T>>>(
     };
     let url: Url = url.into_url()?;
 
-    let max_retries = 12;
-    for i in 0..max_retries {
-        let semaphore = DownloadSemaphore.get(assets);
-        tracing::info!("download [pending ] {}", url_short);
-        let _permit = semaphore.acquire().await.unwrap();
-        tracing::info!("download [download] {}", url_short);
-        let resp = client
-            .get(url.clone())
-            .send()
-            .await
-            .with_context(|| format!("Failed to download {url_str}"))?;
-        if !resp.status().is_success() {
-            tracing::warn!("Request for {} failed: {:?}", url_str, resp.status());
-            return Err(anyhow!(
-                "Downloading {url_str} failed, bad status code: {:?}",
-                resp.status()
-            ));
-        }
-        match map(resp).await {
-            Ok(res) => {
-                tracing::info!("download [complete] {}", url_short);
-                return Ok(res);
+    wasm_nonsend(move || async move {
+        let client = ReqwestClientKey.get(&assets);
+
+        let max_retries = 12;
+        for i in 0..max_retries {
+            let semaphore = DownloadSemaphore.get(&assets);
+            tracing::info!("download [pending ] {}", url_short);
+            let _permit = semaphore.acquire().await.unwrap();
+            tracing::info!("download [download] {}", url_short);
+            let resp = client
+                .get(url.clone())
+                .send()
+                .await
+                .with_context(|| format!("Failed to download {url_str}"))?;
+            if !resp.status().is_success() {
+                tracing::warn!("Request for {} failed: {:?}", url_str, resp.status());
+                return Err(anyhow!(
+                    "Downloading {url_str} failed, bad status code: {:?}",
+                    resp.status()
+                ));
             }
-            Err(err) => {
-                tracing::warn!(
-                    "Failed to read body of {url_str}, retrying ({i}/{max_retries}): {:?}",
-                    err
-                );
-                tokio::time::sleep(Duration::from_millis(2u64.pow(i))).await;
+
+            match map(resp).await {
+                Ok(res) => {
+                    tracing::info!("download [complete] {}", url_short);
+                    return Ok(res);
+                }
+                Err(err) => {
+                    tracing::warn!(
+                        "Failed to read body of {url_str}, retrying ({i}/{max_retries}): {:?}",
+                        err
+                    );
+                    tokio::time::sleep(Duration::from_millis(2u64.pow(i))).await;
+                }
             }
         }
-    }
-    Err(anyhow::anyhow!("Failed to download body of {}", url_str))
+        Err(anyhow::anyhow!("Failed to download body of {}", url_str))
+    })
+    .await
 }
 
 #[derive(Clone, Debug)]

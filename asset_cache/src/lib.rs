@@ -19,7 +19,10 @@ use futures::{
 use parking_lot::Mutex;
 use pin_project::{pin_project, pinned_drop};
 use serde::{Deserialize, Serialize};
-use utils::task::{sleep, spawn, AbortOnDrop, JoinHandle};
+use utils::{
+    task::{spawn, AbortOnDrop, JoinHandle},
+    timer::sleep,
+};
 
 trait AssetHolder: as_any::AsAny + Sync + Send {}
 impl<T: Clone + Sync + Send + Any + 'static> AssetHolder for T {}
@@ -199,18 +202,18 @@ impl AssetCache {
             async_cache: Arc::new(Mutex::new(HashMap::new())),
             sync: Arc::new(Mutex::new(HashMap::new())),
             timeline: Arc::new(Mutex::new(AssetsTimeline::new())),
-            spawner,
+            spawner: spawner.clone(),
             max_keepalive,
             stack: Vec::new(),
         };
         {
             let assets = assets.clone();
-            // spawner.spawn(Box::pin(async move {
-            //     loop {
-            //         sleep(Duration::from_secs_f32(1.)).await;
-            //         assets.clean_up_dropped();
-            //     }
-            // }));
+            spawner.spawn(Box::pin(async move {
+                loop {
+                    sleep(Duration::from_secs_f32(1.)).await;
+                    assets.clean_up_dropped();
+                }
+            }));
         }
         assets
     }
@@ -486,21 +489,21 @@ impl AssetCache {
                     dur = dur.min(max_keepalive);
                 }
 
-                // let task = self.runtime.spawn(async move {
-                //     sleep(dur).await;
-                //     tracing::debug!("Keepalive timed out for {asset_key:?}");
-                //     drop((keepalive_ref, guard));
-                // });
+                let task = spawn(async move {
+                    sleep(dur).await;
+                    tracing::debug!("Keepalive timed out for {asset_key:?}");
+                    drop((keepalive_ref, guard));
+                });
 
-                // loc.keepalive_task = Some(task.into());
+                loc.keepalive_task = Some(task.into());
             }
             AssetKeepalive::Forever => {
-                // let task = self.runtime.spawn(async move {
-                //     pending::<()>().await;
-                //     drop((keepalive_ref, guard));
-                // });
+                let task = spawn(async move {
+                    pending::<()>().await;
+                    drop((keepalive_ref, guard));
+                });
 
-                // loc.keepalive_task = Some(task.into());
+                loc.keepalive_task = Some(task.into());
             }
             _ => (),
         }

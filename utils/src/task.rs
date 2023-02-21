@@ -1,8 +1,10 @@
 use std::{future::Future, task::Poll, time::Duration};
 
+use derive_more::{Deref, From};
 use futures::FutureExt;
 
 use crate::{control::ControlHandle, platform};
+pub use platform::task::wasm_nonsend;
 
 /// Spawns a new background task
 pub fn spawn<F, T>(fut: F) -> JoinHandle<T>
@@ -20,15 +22,11 @@ where
 /// Returns a handle which can be used to control the future
 pub fn spawn_local<F, Fut, T>(func: F) -> ControlHandle<T>
 where
-    F: 'static + Fn() -> Fut + Send,
+    F: 'static + FnOnce() -> Fut + Send,
     Fut: 'static + Future<Output = T>,
     T: 'static + Send,
 {
     platform::task::spawn_local(func)
-}
-
-pub async fn sleep(dur: Duration) {
-    platform::task::sleep(dur).await
 }
 
 #[derive(thiserror::Error, Debug, Clone, PartialEq, Eq)]
@@ -64,6 +62,7 @@ impl<T> Future for JoinHandle<T> {
     }
 }
 
+#[derive(From, Deref)]
 pub struct AbortOnDrop<T>(JoinHandle<T>);
 
 impl<T> Future for AbortOnDrop<T> {

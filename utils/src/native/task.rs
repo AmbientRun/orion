@@ -84,7 +84,7 @@ impl<T> Future for JoinHandle<T> {
 
 pub fn spawn_local<F, Fut, T>(func: F) -> ControlHandle<T>
 where
-    F: 'static + Fn() -> Fut + Send,
+    F: 'static + FnOnce() -> Fut + Send,
     Fut: 'static + Future<Output = T>,
     T: 'static + Send,
 {
@@ -95,4 +95,13 @@ where
         .expect("Worker thread terminated");
 
     ctl
+}
+
+pub async fn wasm_nonsend<F, Fut, T>(func: F) -> T
+where
+    F: 'static + FnOnce() -> Fut + Send,
+    Fut: 'static + Future<Output = T>,
+    T: 'static + Send,
+{
+    func().await
 }

@@ -60,8 +60,6 @@ pub async fn start() {
     sleep(Duration::from_secs(1)).await;
     tracing::info!("Finished sleeping");
 
-    return;
-
     match run().await {
         Ok(()) => {}
         Err(err) => tracing::error!("{err:?}"),

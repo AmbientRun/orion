@@ -44,7 +44,7 @@ impl Texture {
             dimension: TextureDimension::D2,
             format,
             usage,
-            view_formats: &[],
+            // view_formats: &[],
         });
 
         gpu.queue.write_texture(

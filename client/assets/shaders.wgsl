@@ -5,6 +5,7 @@ struct Camera {
 
 struct ObjectData {
     model: mat4x4<f32>,
+    color: vec4<f32>,
 }
 
 struct VertexInput {
@@ -16,14 +17,15 @@ struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
     @location(0) vert_pos: vec3<f32>,
     @location(1) tex_coords: vec2<f32>,
+    @location(2) color: vec4<f32>,
 }
 
 @group(0) @binding(0)
 var<uniform> camera: Camera;
 
 @group(0) @binding(1)
-var<uniform> object_data: array<ObjectData, 64>;
-// var<storage> object_data: array<ObjectData>;
+//var<uniform> object_data: array<ObjectData, 64>;
+var<storage> object_data: array<ObjectData>;
 
 @group(0) @binding(2)
 var diffuse: texture_2d<f32>;
@@ -44,6 +46,7 @@ fn vs_main(
     out.clip_position = clip_pos;
     out.vert_pos = clip_pos.xyz;
     out.tex_coords = in.tex_coords;
+    out.color = object.color;
 
     return out;
 }
@@ -51,7 +54,7 @@ fn vs_main(
 // Fragment shader
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    var color = textureSample(diffuse, diffuse_sampler, in.tex_coords);
+    var color = in.color * textureSample(diffuse, diffuse_sampler, in.tex_coords);
     color = vec4(pow(color.rgb, vec3(1.0/2.2)), color.a);
 
     return color;

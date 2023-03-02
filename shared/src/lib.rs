@@ -9,6 +9,7 @@ pub struct Asteroid {
     pub vel: Vec2,
     pub rot: f32,
     pub ang_vel: f32,
+    pub lifetime: f32,
 }
 
 pub fn server_addr() -> SocketAddr {

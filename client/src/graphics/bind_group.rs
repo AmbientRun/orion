@@ -122,8 +122,6 @@ impl<'a> BindGroupBuilder<'a> {
     }
 
     pub fn build(&self, gpu: &Gpu, layout: &BindGroupLayout) -> BindGroup {
-        tracing::info!("Building bind group: {self:#?}");
-
         gpu.device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some(self.label),
             layout: &layout,

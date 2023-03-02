@@ -5,7 +5,7 @@ use wgpu::{
 };
 
 use super::Gpu;
-
+#[derive(Debug, Clone)]
 pub struct ShaderDesc<'a> {
     pub label: &'a str,
     pub source: Cow<'a, str>,

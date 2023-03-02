@@ -105,7 +105,7 @@ pub async fn run() -> anyhow::Result<()> {
     insert_canvas(&window);
 
     let gpu = Arc::new(Gpu::new(window).await);
-    let mut renderer = Renderer::new();
+    let mut renderer = Renderer::new(&gpu);
 
     let mut game = Game::new(gpu.clone()).await.unwrap();
 

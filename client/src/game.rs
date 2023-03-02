@@ -38,7 +38,7 @@ impl Game {
     pub async fn new(gpu: Arc<Gpu>) -> anyhow::Result<Self> {
         let mut rng = thread_rng();
 
-        let asteroids = (0..16)
+        let asteroids = (0..128)
             .map(|_| {
                 let dir = rng.gen_range(0.0..TAU);
                 let vel = vec2(dir.cos(), dir.sin()) * rng.gen_range(0.0..5.0);
@@ -71,7 +71,7 @@ impl Game {
 
         let image = image::load_from_memory(&image).unwrap();
 
-        let asteroid_texture = Texture::from_image(&gpu, image).create_view();
+        let asteroid_texture = Texture::from_image(&gpu, image).create_view(&Default::default());
 
         let sampler = gpu.device.create_sampler(&wgpu::SamplerDescriptor {
             address_mode_u: wgpu::AddressMode::ClampToEdge,

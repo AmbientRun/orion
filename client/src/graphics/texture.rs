@@ -8,6 +8,7 @@ use super::Gpu;
 
 pub struct Texture {
     texture: wgpu::Texture,
+    size: Extent3d,
 }
 
 impl Texture {
@@ -22,13 +23,12 @@ impl Texture {
         )
     }
 
-    pub fn new(
+    pub fn new_uninit(
         gpu: &Gpu,
         width: u32,
         height: u32,
         format: TextureFormat,
         usage: TextureUsages,
-        bytes: &[u8],
     ) -> Self {
         let size = Extent3d {
             width,
@@ -47,10 +47,21 @@ impl Texture {
             // view_formats: &[],
         });
 
+        Self { texture, size }
+    }
+    pub fn new(
+        gpu: &Gpu,
+        width: u32,
+        height: u32,
+        format: TextureFormat,
+        usage: TextureUsages,
+        bytes: &[u8],
+    ) -> Self {
+        let texture = Self::new_uninit(gpu, width, height, format, usage);
         gpu.queue.write_texture(
             // Tells wgpu where to copy the pixel data
             wgpu::ImageCopyTexture {
-                texture: &texture,
+                texture: &texture.texture,
                 mip_level: 0,
                 origin: wgpu::Origin3d::ZERO,
                 aspect: wgpu::TextureAspect::All,
@@ -60,16 +71,18 @@ impl Texture {
             // The layout of the texture
             wgpu::ImageDataLayout {
                 offset: 0,
-                bytes_per_row: std::num::NonZeroU32::new(4 * width),
+                bytes_per_row: std::num::NonZeroU32::new(
+                    format.describe().block_size as u32 * width,
+                ),
                 rows_per_image: std::num::NonZeroU32::new(height),
             },
-            size,
+            texture.size,
         );
 
-        Self { texture }
+        texture
     }
 
-    pub fn create_view(&self) -> TextureView {
-        self.texture.create_view(&TextureViewDescriptor::default())
+    pub fn create_view(&self, desc: &TextureViewDescriptor) -> TextureView {
+        self.texture.create_view(desc)
     }
 }

@@ -22,7 +22,7 @@ struct VertexOutput {
 var<uniform> camera: Camera;
 
 @group(0) @binding(1)
-var<uniform> object_data: array<ObjectData, 16>;
+var<uniform> object_data: array<ObjectData, 64>;
 // var<storage> object_data: array<ObjectData>;
 
 @group(0) @binding(2)
@@ -51,5 +51,8 @@ fn vs_main(
 // Fragment shader
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    return textureSample(diffuse, diffuse_sampler, in.tex_coords);
+    var color = textureSample(diffuse, diffuse_sampler, in.tex_coords);
+    color = vec4(pow(color.rgb, vec3(1.0/2.2)), color.a);
+
+    return color;
 }

@@ -2,6 +2,8 @@ use tracing::info_span;
 use wgpu::{Adapter, Backends, CommandEncoder, SurfaceConfiguration, TextureFormat, TextureView};
 use winit::{dpi::PhysicalSize, event::WindowEvent, window::Window};
 
+use crate::graphics::Texture;
+
 pub struct Gpu {
     surface: wgpu::Surface,
     adapter: Adapter,
@@ -62,12 +64,14 @@ impl Gpu {
             .unwrap();
 
         let surface_formats = surface.get_supported_formats(&adapter);
+        tracing::info!("Available surface formats: {surface_formats:#?}");
         let surface_format = surface_formats
             .iter()
             .copied()
-            .find(|f| f.describe().srgb)
+            .find(|f| !f.describe().srgb)
             .unwrap_or_else(|| surface_formats[0]);
 
+        tracing::info!("Found surface format: {:?}", surface_format);
         // let surface_caps = surface.get_capabilities(&adapter);
         // // Shader code in this tutorial assumes an sRGB surface texture. Using a different
         // // one will result all the colors coming out darker. If you want to support non
@@ -90,6 +94,8 @@ impl Gpu {
             // alpha_mode: surface_caps.alpha_modes[0],
             // view_formats: vec![],
         };
+
+        tracing::info!("Surface configuration: {config:?}");
 
         surface.configure(&device, &config);
 
@@ -147,9 +153,9 @@ impl Gpu {
         let _span = info_span!("drawing").entered();
         let output = self.surface.get_current_texture()?;
 
-        let view = output
-            .texture
-            .create_view(&wgpu::TextureViewDescriptor::default());
+        let view = output.texture.create_view(&wgpu::TextureViewDescriptor {
+            ..Default::default()
+        });
 
         let mut encoder = self
             .device

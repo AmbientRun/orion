@@ -213,7 +213,7 @@ impl Game {
         }
 
         self.spawner.update(&mut self.asteroids, dt);
-        tracing::info!("Asteroids: {}", self.asteroids.len());
+        tracing::debug!("Asteroids: {}", self.asteroids.len());
     }
 
     pub fn render<'a>(&'a mut self, render_pass: &mut RenderPass<'a>) {

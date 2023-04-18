@@ -1,7 +1,8 @@
 use std::borrow::Cow;
 
 use wgpu::{
-    BindGroupLayout, PipelineLayoutDescriptor, RenderPipeline, TextureFormat, VertexBufferLayout,
+    BindGroupLayout, DepthStencilState, PipelineLayoutDescriptor, RenderPipeline, StencilState,
+    TextureFormat, VertexBufferLayout,
 };
 
 use super::Gpu;
@@ -68,7 +69,18 @@ impl Shader {
                     // Requires Features::CONSERVATIVE_RASTERIZATION
                     conservative: false,
                 },
-                depth_stencil: None, // 1.
+                depth_stencil: Some(DepthStencilState {
+                    format: TextureFormat::Depth24PlusStencil8,
+                    depth_write_enabled: true,
+                    depth_compare: wgpu::CompareFunction::Less,
+                    stencil: StencilState {
+                        front: wgpu::StencilFaceState::default(),
+                        back: wgpu::StencilFaceState::default(),
+                        read_mask: 0,
+                        write_mask: 0,
+                    },
+                    bias: Default::default(),
+                }),
                 multisample: wgpu::MultisampleState {
                     count: 1,                         // 2.
                     mask: !0,                         // 3.

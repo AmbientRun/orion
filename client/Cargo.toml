@@ -46,7 +46,7 @@ web-sys = { version = "0.3.61", features = [
 # rustls = "0.20"
 winit = "0.28"
 
-wgpu = { version = "0.14.2", features = [] }
+wgpu = { git = "https://github.com/gfx-rs/wgpu" }
 
 
 bytemuck = { version = "1.13", features = ["derive"] }
@@ -55,7 +55,7 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["time", "env-filter"] }
 tracing-web = "0.1"
 time = { version = "0.3", features = ["wasm-bindgen"] }
-rand_pcg = { version = "0.3.1"}
+rand_pcg = { version = "0.3.1" }
 
 futures.workspace = true
 tokio = { version = "1.25", features = ["rt", "sync", "time", "macros"] }

@@ -1,5 +1,8 @@
 use tracing::info_span;
-use wgpu::{Adapter, Backends, CommandEncoder, SurfaceConfiguration, TextureFormat, TextureView};
+use wgpu::{
+    Adapter, Backends, CommandEncoder, SurfaceCapabilities, SurfaceConfiguration, TextureFormat,
+    TextureView,
+};
 use winit::{dpi::PhysicalSize, event::WindowEvent, window::Window};
 
 use crate::graphics::Texture;
@@ -10,7 +13,7 @@ pub struct Gpu {
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
     surface_format: TextureFormat,
-    // surface_caps: SurfaceCapabilities,
+    surface_caps: SurfaceCapabilities,
     size: PhysicalSize<u32>,
     window: Window,
 }
@@ -23,18 +26,18 @@ impl Gpu {
 
         // The instance is a handle to our GPU
         // Backends::all => Vulkan + Metal + DX12 + Browser WebGPU
-        // let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
-        //     backends: wgpu::Backends::all(),
-        //     dx12_shader_compiler: Default::default(),
-        // });
+        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+            backends: wgpu::Backends::all(),
+            dx12_shader_compiler: Default::default(),
+        });
 
-        let instance = wgpu::Instance::new(Backends::all());
+        // let instance = wgpu::Instance::new(Backends::all());
 
         // # Safety
         //
         // The surface needs to live as long as the window that created it.
         // State owns the window so this should be safe.
-        let surface = unsafe { instance.create_surface(&window) };
+        let surface = unsafe { instance.create_surface(&window) }.unwrap();
 
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
@@ -63,36 +66,36 @@ impl Gpu {
             .await
             .unwrap();
 
-        let surface_formats = surface.get_supported_formats(&adapter);
-        tracing::info!("Available surface formats: {surface_formats:#?}");
-        let surface_format = surface_formats
-            .iter()
-            .copied()
-            .find(|f| !f.describe().srgb)
-            .unwrap_or_else(|| surface_formats[0]);
-
-        tracing::info!("Found surface format: {:?}", surface_format);
-        // let surface_caps = surface.get_capabilities(&adapter);
-        // // Shader code in this tutorial assumes an sRGB surface texture. Using a different
-        // // one will result all the colors coming out darker. If you want to support non
-        // // sRGB surfaces, you'll need to account for that when drawing to the frame.
-        // let surface_format = surface_caps
-        //     .formats
+        // let surface_formats = surface.get_supported_formats(&adapter);
+        // tracing::info!("Available surface formats: {surface_formats:#?}");
+        // let surface_format = surface_formats
         //     .iter()
         //     .copied()
-        //     .find(|f| f.describe().srgb)
-        //     .unwrap_or(surface_caps.formats[0]);
+        //     .find(|f| !f.describe().srgb)
+        //     .unwrap_or_else(|| surface_formats[0]);
 
+        let surface_caps = surface.get_capabilities(&adapter);
+        // Shader code in this tutorial assumes an sRGB surface texture. Using a different
+        // one will result all the colors coming out darker. If you want to support non
+        // sRGB surfaces, you'll need to account for that when drawing to the frame.
+        let surface_format = surface_caps
+            .formats
+            .iter()
+            .copied()
+            .find(|f| f.is_srgb())
+            .unwrap_or(surface_caps.formats[0]);
+
+        tracing::info!("Found surface format: {:?}", surface_format);
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
             format: surface_format,
             width: size.width,
             height: size.height,
-            present_mode: surface.get_supported_present_modes(&adapter)[0],
-            alpha_mode: surface.get_supported_alpha_modes(&adapter)[0],
-            // present_mode: surface_caps.present_modes[0],
-            // alpha_mode: surface_caps.alpha_modes[0],
-            // view_formats: vec![],
+            // present_mode: surface.get_supported_present_modes(&adapter)[0],
+            // alpha_mode: surface.get_supported_alpha_modes(&adapter)[0],
+            present_mode: surface_caps.present_modes[0],
+            alpha_mode: surface_caps.alpha_modes[0],
+            view_formats: vec![],
         };
 
         tracing::info!("Surface configuration: {config:?}");
@@ -106,7 +109,7 @@ impl Gpu {
             device,
             queue,
             surface_format,
-            // surface_caps,
+            surface_caps,
             size,
         }
     }
@@ -117,11 +120,11 @@ impl Gpu {
             format: self.surface_format,
             width: size.width,
             height: size.height,
-            present_mode: self.surface.get_supported_present_modes(&self.adapter)[0],
-            alpha_mode: self.surface.get_supported_alpha_modes(&self.adapter)[0],
-            // present_mode: self.surface_caps.present_modes[0],
-            // alpha_mode: self.surface_caps.alpha_modes[0],
-            // view_formats: vec![],
+            // present_mode: self.surface.get_supported_present_modes(&self.adapter)[0],
+            // alpha_mode: self.surface.get_supported_alpha_modes(&self.adapter)[0],
+            present_mode: self.surface_caps.present_modes[0],
+            alpha_mode: self.surface_caps.alpha_modes[0],
+            view_formats: vec![],
         }
     }
 

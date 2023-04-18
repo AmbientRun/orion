@@ -44,7 +44,7 @@ impl Texture {
             dimension: TextureDimension::D2,
             format,
             usage,
-            // view_formats: &[],
+            view_formats: &[],
         });
 
         Self { texture, size }
@@ -71,10 +71,8 @@ impl Texture {
             // The layout of the texture
             wgpu::ImageDataLayout {
                 offset: 0,
-                bytes_per_row: std::num::NonZeroU32::new(
-                    format.describe().block_size as u32 * width,
-                ),
-                rows_per_image: std::num::NonZeroU32::new(height),
+                bytes_per_row: Some(format.block_size(None).unwrap() * width),
+                rows_per_image: Some(height),
             },
             texture.size,
         );

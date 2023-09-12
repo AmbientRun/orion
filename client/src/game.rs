@@ -39,7 +39,6 @@ impl Spawner {
         self.acc += dt;
         while self.acc >= self.spawn_interval {
             for _ in 0..self.spawn_count {
-                tracing::info!("Spawning asteroid");
                 self.spawn(asteroids);
             }
 
@@ -209,15 +208,12 @@ impl Game {
         }
 
         self.spawner.update(&mut self.asteroids, dt);
-        tracing::debug!("Asteroids: {}", self.asteroids.len());
     }
 
     pub fn render<'a>(&'a mut self, render_pass: &mut RenderPass<'a>) {
         if self.asteroids.is_empty() {
             return;
         }
-
-        tracing::info!(asteroids=?self.asteroids.len(), "render");
 
         // Update the object data
         self.object_data

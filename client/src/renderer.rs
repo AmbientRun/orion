@@ -33,13 +33,13 @@ impl Renderer {
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::Depth24PlusStencil8,
+            format: wgpu::TextureFormat::Depth32Float,
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
             view_formats: &[],
         });
 
         let depth = depth.create_view(&wgpu::TextureViewDescriptor {
-            aspect: wgpu::TextureAspect::All,
+            aspect: wgpu::TextureAspect::DepthOnly,
             ..Default::default()
         });
 
@@ -54,7 +54,7 @@ impl Renderer {
                 resolve_target: None,
                 ops: wgpu::Operations {
                     load: wgpu::LoadOp::Clear(wgpu::Color {
-                        r: 0.4,
+                        r: 0.1,
                         g: 0.0,
                         b: 0.2,
                         a: 1.0,
@@ -62,20 +62,14 @@ impl Renderer {
                     store: true,
                 },
             })],
-            depth_stencil_attachment: None,
-            // depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-            //     view: &self.depth,
-            //     depth_ops: None,
-            //     // depth_ops: Some(Operations {
-            //     //     load: LoadOp::Clear(0.0),
-            //     //     store: true,
-            //     // }),
-            //     stencil_ops: None,
-            //     // stencil_ops: Some(Operations {
-            //     //     load: LoadOp::Load,
-            //     //     store: false,
-            //     // }),
-            // }),
+            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                view: &self.depth,
+                depth_ops: Some(Operations {
+                    load: LoadOp::Clear(1.0),
+                    store: true,
+                }),
+                stencil_ops: None,
+            }),
         });
 
         game.render(&mut render_pass)

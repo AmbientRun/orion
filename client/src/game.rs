@@ -39,6 +39,7 @@ impl Spawner {
         self.acc += dt;
         while self.acc >= self.spawn_interval {
             for _ in 0..self.spawn_count {
+                tracing::info!("Spawning asteroid");
                 self.spawn(asteroids);
             }
 
@@ -47,7 +48,7 @@ impl Spawner {
     }
 
     fn spawn(&mut self, asteroids: &mut Vec<Asteroid>) {
-        let mut rng = &mut self.rng;
+        let rng = &mut self.rng;
 
         let dir = rng.gen_range(0.0..TAU);
         let vel = vec2(dir.cos(), dir.sin()) * rng.gen_range(0.0..5.0);
@@ -109,12 +110,6 @@ impl Game {
         let asteroid_texture = Texture::from_image(&gpu, image).create_view(&Default::default());
 
         let sampler = gpu.device.create_sampler(&wgpu::SamplerDescriptor {
-            address_mode_u: wgpu::AddressMode::ClampToEdge,
-            address_mode_v: wgpu::AddressMode::ClampToEdge,
-            address_mode_w: wgpu::AddressMode::ClampToEdge,
-            mag_filter: wgpu::FilterMode::Linear,
-            min_filter: wgpu::FilterMode::Nearest,
-            mipmap_filter: wgpu::FilterMode::Nearest,
             ..Default::default()
         });
 
@@ -125,6 +120,7 @@ impl Game {
 
         let bounds = vec2(size * aspect, size);
 
+        tracing::info!(?bounds, "bounds");
         let camera = Camera::new(
             Mat4::from_rotation_translation(Quat::IDENTITY, vec3(0.0, 0.0, 1.0)),
             Mat4::orthographic_lh(-bounds.x, bounds.x, -bounds.y, bounds.y, 0.1, 1000.0),
@@ -217,6 +213,12 @@ impl Game {
     }
 
     pub fn render<'a>(&'a mut self, render_pass: &mut RenderPass<'a>) {
+        if self.asteroids.is_empty() {
+            return;
+        }
+
+        tracing::info!(asteroids=?self.asteroids.len(), "render");
+
         // Update the object data
         self.object_data
             .iter_mut()
@@ -233,10 +235,10 @@ impl Game {
         self.object_buffer.write(&self.gpu.queue, &self.object_data);
 
         render_pass.set_pipeline(self.shader.pipeline());
-        self.square.bind(render_pass);
 
         render_pass.set_bind_group(0, &self.asteroid_bind_group, &[]);
 
+        self.square.bind(render_pass);
         render_pass.draw_indexed(
             0..self.square.index_count(),
             0,

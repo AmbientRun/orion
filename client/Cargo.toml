@@ -46,7 +46,7 @@ web-sys = { version = "0.3.61", features = [
 # rustls = "0.20"
 winit = "0.28"
 
-wgpu = { git = "https://github.com/gfx-rs/wgpu" }
+wgpu = { version = "0.17" }
 
 
 bytemuck = { version = "1.13", features = ["derive"] }

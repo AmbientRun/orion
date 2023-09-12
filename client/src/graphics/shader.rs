@@ -60,8 +60,9 @@ impl Shader {
                 primitive: wgpu::PrimitiveState {
                     topology: wgpu::PrimitiveTopology::TriangleList, // 1.
                     strip_index_format: None,
-                    front_face: wgpu::FrontFace::Ccw, // 2.
-                    cull_mode: Some(wgpu::Face::Back),
+                    front_face: wgpu::FrontFace::Cw, // 2.
+                    // cull_mode: Some(wgpu::Face::Back),
+                    cull_mode: None,
                     // Setting this to anything other than Fill requires Features::NON_FILL_POLYGON_MODE
                     polygon_mode: wgpu::PolygonMode::Fill,
                     // Requires Features::DEPTH_CLIP_CONTROL
@@ -69,18 +70,19 @@ impl Shader {
                     // Requires Features::CONSERVATIVE_RASTERIZATION
                     conservative: false,
                 },
-                depth_stencil: Some(DepthStencilState {
-                    format: TextureFormat::Depth24PlusStencil8,
-                    depth_write_enabled: true,
-                    depth_compare: wgpu::CompareFunction::Less,
-                    stencil: StencilState {
-                        front: wgpu::StencilFaceState::default(),
-                        back: wgpu::StencilFaceState::default(),
-                        read_mask: 0,
-                        write_mask: 0,
-                    },
-                    bias: Default::default(),
-                }),
+                depth_stencil: None,
+                // depth_stencil: Some(DepthStencilState {
+                //     format: TextureFormat::Depth24PlusStencil8,
+                //     depth_write_enabled: true,
+                //     depth_compare: wgpu::CompareFunction::Less,
+                //     stencil: StencilState {
+                //         front: wgpu::StencilFaceState::default(),
+                //         back: wgpu::StencilFaceState::default(),
+                //         read_mask: 0,
+                //         write_mask: 0,
+                //     },
+                //     bias: Default::default(),
+                // }),
                 multisample: wgpu::MultisampleState {
                     count: 1,                         // 2.
                     mask: !0,                         // 3.

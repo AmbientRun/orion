@@ -1,6 +1,5 @@
 use std::borrow::Cow;
 
-use tracing::field::Visit;
 use wgpu::{
     BindGroup, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry,
     BindingResource, BindingType, Buffer, BufferBindingType, Sampler, SamplerBindingType,

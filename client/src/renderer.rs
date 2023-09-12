@@ -54,7 +54,7 @@ impl Renderer {
                 resolve_target: None,
                 ops: wgpu::Operations {
                     load: wgpu::LoadOp::Clear(wgpu::Color {
-                        r: 0.1,
+                        r: 0.4,
                         g: 0.0,
                         b: 0.2,
                         a: 1.0,
@@ -62,19 +62,20 @@ impl Renderer {
                     store: true,
                 },
             })],
-            // depth_stencil_attachment: None,
-            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                view: &self.depth,
-                depth_ops: Some(Operations {
-                    load: LoadOp::Clear(0.0),
-                    store: true,
-                }),
-                // stencil_ops: None,
-                stencil_ops: Some(Operations {
-                    load: LoadOp::Load,
-                    store: false,
-                }),
-            }),
+            depth_stencil_attachment: None,
+            // depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+            //     view: &self.depth,
+            //     depth_ops: None,
+            //     // depth_ops: Some(Operations {
+            //     //     load: LoadOp::Clear(0.0),
+            //     //     store: true,
+            //     // }),
+            //     stencil_ops: None,
+            //     // stencil_ops: Some(Operations {
+            //     //     load: LoadOp::Load,
+            //     //     store: false,
+            //     // }),
+            // }),
         });
 
         game.render(&mut render_pass)

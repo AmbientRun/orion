@@ -18,7 +18,7 @@ use web_sys::window;
 use winit::{
     event::*,
     event_loop::{ControlFlow, EventLoop},
-    platform::web::EventLoopExtWebSys,
+    platform::web::{EventLoopExtWebSys, WindowBuilderExtWebSys},
     window::{Window, WindowBuilder},
 };
 
@@ -97,8 +97,16 @@ pub async fn run() -> anyhow::Result<()> {
         .performance()
         .context("Performance missing")?;
 
+    // let canvas = window()
+    //     .unwrap()
+    //     .document()
+    //     .unwrap()
+    //     .get_element_by_id("canvas")
+    //     .unwrap();
+
     let window = WindowBuilder::new()
         .with_title("Winit window")
+        // .with_canvas(Some(canvas.dyn_into().unwrap()))
         .build(&event_loop)
         .unwrap();
 
@@ -184,6 +192,6 @@ pub fn insert_canvas(window: &Window) {
     let body = document.body().unwrap();
 
     // Set a background color for the canvas to make it easier to tell where the canvas is for debugging purposes.
-    canvas.style().set_css_text("background-color: crimson;");
+    // canvas.style().set_css_text("background-color: crimson;");
     body.append_child(&canvas).unwrap();
 }

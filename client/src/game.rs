@@ -98,6 +98,8 @@ pub struct Game {
     bounds: Vec2,
 
     spawner: Spawner,
+
+    orbit_time: f32,
 }
 
 impl Game {
@@ -194,8 +196,24 @@ impl Game {
         );
 
         let mut asteroids = Vec::new();
-        for _ in 0..16 {
-            spawner.spawn(&mut asteroids)
+        let mut rng = Pcg32::from_entropy();
+        let count = 42;
+        for i in 0..count {
+            let dir = Vec2::X;
+            let vel = dir * rng.gen_range(0.1..0.2);
+
+            let height = bounds.y * 1.8;
+
+            asteroids.push(Asteroid {
+                radius: rng.gen_range(0.5..=1.0),
+                color: rng.gen(),
+                pos: vec2(0.0, height * (i as f32 / (count - 1) as f32) - height / 2.0),
+                // pos: vec2(0.0, 0.0),
+                vel,
+                rot: rng.gen_range(0.0..=TAU),
+                ang_vel: rng.gen_range(-1.0..=1.0),
+                lifetime: rng.gen_range(1.0..=10.0),
+            })
         }
 
         Ok(Self {
@@ -212,33 +230,31 @@ impl Game {
             bounds,
             spawner,
             indirect_buffer,
+            orbit_time: 0.0,
         })
     }
 
     pub fn update(&mut self, dt: f32) {
-        for v in &mut self.asteroids {
-            v.pos += v.vel * dt;
-            v.rot += v.ang_vel * dt;
+        self.orbit_time += dt;
+        let layers = [2, 8, 32, 48];
 
-            // Handle wall collision
+        let orbit_time = self.orbit_time;
 
-            // let right = self.bounds.x;
-            // let top = self.bounds.y;
+        layers
+            .iter()
+            .enumerate()
+            .flat_map(|(i, &count)| {
+                (0..count).map(move |v| (i as f32 + 1.0, v as f32 / count as f32 * TAU))
+            })
+            .zip(&mut self.asteroids)
+            .for_each(|((layer, theta), asteroid)| {
+                let theta = theta + orbit_time * layer.powi(3).sqrt().recip();
 
-            // if v.pos.x + v.radius > right {
-            //     v.vel = vec2(-v.vel.x.abs(), v.vel.y);
-            // }
-            // if v.pos.x - v.radius < -right {
-            //     v.vel = vec2(v.vel.x.abs(), v.vel.y);
-            // }
+                let ang = vec2(theta.cos(), theta.sin()) * layer.powi(2);
+                asteroid.pos = ang;
 
-            // if v.pos.y + v.radius > top {
-            //     v.vel = vec2(v.vel.x, -v.vel.y.abs());
-            // }
-            // if v.pos.y - v.radius < -top {
-            //     v.vel = vec2(v.vel.x, v.vel.y.abs());
-            // }
-        }
+                asteroid.rot += asteroid.ang_vel * dt;
+            });
 
         // self.spawner.update(&mut self.asteroids, dt);
     }

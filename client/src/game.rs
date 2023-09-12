@@ -3,7 +3,6 @@ use std::{f32::consts::TAU, sync::Arc};
 use bytemuck::{Pod, Zeroable};
 
 use glam::{vec2, vec3, Mat4, Quat, Vec2, Vec3, Vec4};
-use orion_shared::Asteroid;
 use rand::{Rng, SeedableRng};
 use rand_pcg::Pcg32;
 use wgpu::{BindGroup, BufferUsages, RenderPass, ShaderStages};
@@ -15,6 +14,15 @@ use crate::{
         TypedBuffer, Vertex,
     },
 };
+
+pub struct Asteroid {
+    pub color: Vec3,
+    pub radius: f32,
+    pub pos: Vec2,
+    pub rot: f32,
+    pub ang_vel: f32,
+    pub lifetime: f32,
+}
 
 #[repr(C)]
 #[derive(bytemuck::Pod, bytemuck::Zeroable, Clone, Copy, Default, Debug)]
@@ -141,19 +149,13 @@ impl Game {
 
         let mut asteroids = Vec::new();
         let mut rng = Pcg32::from_entropy();
-        let count = 42;
-        for i in 0..count {
-            let dir = Vec2::X;
-            let vel = dir * rng.gen_range(0.1..0.2);
 
-            let height = bounds.y * 1.8;
-
+        for _ in 0..42 {
             asteroids.push(Asteroid {
                 radius: rng.gen_range(0.5..=1.0),
                 color: rng.gen(),
-                pos: vec2(0.0, height * (i as f32 / (count - 1) as f32) - height / 2.0),
+                pos: Vec2::ZERO,
                 // pos: vec2(0.0, 0.0),
-                vel,
                 rot: rng.gen_range(0.0..=TAU),
                 ang_vel: rng.gen_range(-1.0..=1.0),
                 lifetime: rng.gen_range(1.0..=10.0),

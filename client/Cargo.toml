@@ -8,7 +8,6 @@ edition = "2018"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-orion-shared = { path = "../shared" }
 elements_asset_cache = { path = "../asset_cache" }
 
 utils = { path = "../utils", features = ["console_error_panic_hook"] }

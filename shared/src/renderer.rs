@@ -1,9 +1,8 @@
-use serde::__private::size_hint::from_bounds;
 use wgpu::{CommandEncoder, LoadOp, Operations, TextureUsages, TextureView};
 
 use crate::{
+    game::Game,
     graphics::{Gpu, Texture},
-    Game,
 };
 
 pub struct Renderer {

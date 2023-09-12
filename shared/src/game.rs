@@ -140,7 +140,7 @@ impl Game {
             &gpu,
             ShaderDesc {
                 label: "asteroids",
-                source: include_str!("../assets/shaders.wgsl").into(),
+                source: include_str!("../../assets/shaders.wgsl").into(),
                 format: gpu.surface_format(),
                 vertex_layouts: vec![Vertex::layout()].into(),
                 layouts: &[&asteroid_bind_group_layout],
@@ -155,7 +155,6 @@ impl Game {
                 radius: rng.gen_range(0.5..=1.0),
                 color: rng.gen(),
                 pos: Vec2::ZERO,
-                // pos: vec2(0.0, 0.0),
                 rot: rng.gen_range(0.0..=TAU),
                 ang_vel: rng.gen_range(-1.0..=1.0),
                 lifetime: rng.gen_range(1.0..=10.0),

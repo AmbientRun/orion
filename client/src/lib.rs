@@ -1,34 +1,23 @@
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
 
 use anyhow::Context;
-use futures::FutureExt;
-use tokio::select;
+
+use shared::{game::Game, graphics::Gpu, renderer::Renderer};
 use tracing::metadata::LevelFilter;
 use tracing_subscriber::{
     fmt::time::UtcTime, prelude::__tracing_subscriber_SubscriberExt, registry,
     util::SubscriberInitExt, EnvFilter,
 };
 use tracing_web::*;
-use utils::{
-    task::spawn,
-    timer::{self, sleep},
-};
+
 use wasm_bindgen::prelude::*;
 use web_sys::window;
 use winit::{
     event::*,
     event_loop::{ControlFlow, EventLoop},
-    platform::web::{EventLoopExtWebSys, WindowBuilderExtWebSys},
+    platform::web::EventLoopExtWebSys,
     window::{Window, WindowBuilder},
 };
-
-use crate::{game::Game, graphics::Gpu, renderer::Renderer};
-
-pub mod assets;
-mod camera;
-mod game;
-pub mod graphics;
-pub mod renderer;
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
@@ -38,6 +27,8 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 #[wasm_bindgen(start)]
 pub async fn start() {
+    console_error_panic_hook::set_once();
+
     let fmt_layer = tracing_subscriber::fmt::layer()
         .with_ansi(false) // Only partially supported across browsers
         .with_timer(UtcTime::rfc_3339()) // std::time is not available in browsers
@@ -52,14 +43,6 @@ pub async fn start() {
         .with(fmt_layer)
         .init();
 
-    utils::set_panic_hook();
-
-    spawn(timer::TimerWheel::new().start());
-
-    tracing::info!("Sleeping...");
-    sleep(Duration::from_secs(1)).await;
-    tracing::info!("Finished sleeping");
-
     match run().await {
         Ok(()) => {}
         Err(err) => tracing::error!("{err:?}"),
@@ -67,29 +50,6 @@ pub async fn start() {
 }
 
 pub async fn run() -> anyhow::Result<()> {
-    tracing::info!("Running app");
-
-    //     let mut a = utils::task::spawn(async {
-    //         sleep(Duration::from_millis(500)).await;
-    //     });
-
-    //     let mut b = utils::task::spawn(async {
-    //         sleep(Duration::from_millis(1000)).await;
-    //     });
-
-    //     spawn(async move {
-    //         loop {
-    //             tokio::select! {
-    //                 _ = &mut a => {
-    //                     tracing::info!("A completed");
-    //                 },
-    //                 _ = &mut b => {
-    //                     tracing::info!("B completed");
-    //                 }
-    //             }
-    //         }
-    //     });
-
     let event_loop = EventLoop::new();
 
     let perf = window()
@@ -172,9 +132,15 @@ pub async fn run() -> anyhow::Result<()> {
                 acc -= dt;
             }
 
-            // RedrawRequested will only trigger once, unless we manually
-            // request it.
-            gpu.window().request_redraw();
+            match gpu.render(|encoder, view| renderer.render(encoder, view, &mut game)) {
+                Ok(_) => {}
+                // Reconfigure the surface if lost
+                Err(wgpu::SurfaceError::Lost) => gpu.resize(gpu.size()),
+                // The system is out of memory, we should probably quit
+                Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,
+                // All other errors (Outdated, Timeout) should be resolved by the next frame
+                Err(e) => eprintln!("{:?}", e),
+            }
         }
         _ => {}
     });

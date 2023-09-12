@@ -1,5 +1,7 @@
 use std::{f32::consts::TAU, sync::Arc};
 
+use bytemuck::{Pod, Zeroable};
+use futures::task::SpawnExt;
 use glam::{vec2, vec3, vec4, Mat4, Quat, Vec2, Vec3, Vec4};
 use itertools::Itertools;
 use orion_shared::Asteroid;
@@ -64,6 +66,22 @@ impl Spawner {
     }
 }
 
+#[derive(Copy, Clone, Debug, Default, Pod, Zeroable)]
+#[repr(C)]
+pub struct DrawIndexedIndirect {
+    /// The number of vertices to draw.
+    pub vertex_count: u32,
+    /// The number of instances to draw.
+    pub instance_count: u32,
+    /// The base index within the index buffer.
+    pub base_index: u32,
+    /// The value added to the vertex index before indexing into the vertex buffer.
+    pub vertex_offset: i32,
+    /// The instance ID of the first instance to draw.
+    /// Has to be 0, unless [`Features::INDIRECT_FIRST_INSTANCE`](crate::Features::INDIRECT_FIRST_INSTANCE) is enabled.
+    pub base_instance: u32,
+}
+
 pub struct Game {
     asteroids: Vec<Asteroid>,
     object_data: Vec<Object>,
@@ -73,6 +91,8 @@ pub struct Game {
     asteroid_texture: TextureView,
     camera_buffer: TypedBuffer<Camera>,
     object_buffer: TypedBuffer<Object>,
+    indirect_buffer: TypedBuffer<DrawIndexedIndirect>,
+
     asteroid_bind_group: BindGroup,
     sampler: Sampler,
     bounds: Vec2,
@@ -82,7 +102,7 @@ pub struct Game {
 
 impl Game {
     pub async fn new(gpu: Arc<Gpu>) -> anyhow::Result<Self> {
-        let spawner = Spawner {
+        let mut spawner = Spawner {
             acc: 0.0,
             spawn_interval: 1.0,
             spawn_count: 64,
@@ -141,6 +161,13 @@ impl Game {
             &object_data,
         );
 
+        let indirect_buffer = TypedBuffer::new(
+            &gpu,
+            "indirect_buffer",
+            BufferUsages::INDIRECT | BufferUsages::COPY_DST,
+            &[DrawIndexedIndirect::zeroed(); 1024],
+        );
+
         let asteroid_bind_group_layout = BindGroupLayoutBuilder::new("asteroid_bind_group_layout")
             .bind_uniform_buffer(ShaderStages::VERTEX)
             .bind_storage_buffer(ShaderStages::VERTEX)
@@ -166,8 +193,13 @@ impl Game {
             },
         );
 
+        let mut asteroids = Vec::new();
+        for _ in 0..16 {
+            spawner.spawn(&mut asteroids)
+        }
+
         Ok(Self {
-            asteroids: Vec::new(),
+            asteroids,
             gpu,
             shader,
             square,
@@ -179,6 +211,7 @@ impl Game {
             object_buffer,
             bounds,
             spawner,
+            indirect_buffer,
         })
     }
 
@@ -207,7 +240,7 @@ impl Game {
             // }
         }
 
-        self.spawner.update(&mut self.asteroids, dt);
+        // self.spawner.update(&mut self.asteroids, dt);
     }
 
     pub fn render<'a>(&'a mut self, render_pass: &mut RenderPass<'a>) {
@@ -215,30 +248,49 @@ impl Game {
             return;
         }
 
+        let mut cmds = Vec::new();
+        let index_count = self.square.index_count();
         // Update the object data
         self.object_data
             .iter_mut()
             .zip(&self.asteroids)
-            .for_each(|(object, v)| {
+            .enumerate()
+            .for_each(|(i, (object, v))| {
                 object.model = Mat4::from_scale_rotation_translation(
                     Vec3::ONE * 2.0 * v.radius,
                     Quat::from_scaled_axis(Vec3::Z * v.rot),
                     v.pos.extend(0.0),
                 );
                 object.color = Vec4::ONE * v.lifetime.clamp(0.0, 1.0);
+                cmds.push(DrawIndexedIndirect {
+                    vertex_count: index_count,
+                    instance_count: 1,
+                    base_index: 0,
+                    vertex_offset: 0,
+                    base_instance: i as _,
+                })
             });
 
         self.object_buffer.write(&self.gpu.queue, &self.object_data);
+        self.indirect_buffer.write(&self.gpu.queue, &cmds);
 
         render_pass.set_pipeline(self.shader.pipeline());
 
         render_pass.set_bind_group(0, &self.asteroid_bind_group, &[]);
 
         self.square.bind(render_pass);
-        render_pass.draw_indexed(
-            0..self.square.index_count(),
-            0,
-            0..self.asteroids.len() as _,
-        );
+
+        for i in 0..cmds.len() {
+            render_pass.draw_indexed_indirect(
+                &self.indirect_buffer,
+                i as u64 * std::mem::size_of::<DrawIndexedIndirect>() as u64,
+            );
+        }
+
+        // render_pass.draw_indexed(
+        //     0..self.square.index_count(),
+        //     0,
+        //     0..self.asteroids.len() as _,
+        // );
     }
 }

@@ -45,7 +45,7 @@ where
     }
 
     pub fn write(&self, queue: &Queue, data: &[T]) {
-        assert_eq!(self.len(), data.len());
+        assert!(data.len() <= self.len);
         queue.write_buffer(self, 0, bytemuck::cast_slice(data));
     }
 }

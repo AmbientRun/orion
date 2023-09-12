@@ -1,13 +1,12 @@
 use std::{f32::consts::TAU, sync::Arc};
 
 use bytemuck::{Pod, Zeroable};
-use futures::task::SpawnExt;
-use glam::{vec2, vec3, vec4, Mat4, Quat, Vec2, Vec3, Vec4};
-use itertools::Itertools;
+
+use glam::{vec2, vec3, Mat4, Quat, Vec2, Vec3, Vec4};
 use orion_shared::Asteroid;
-use rand::{rngs::StdRng, thread_rng, Rng, SeedableRng};
+use rand::{Rng, SeedableRng};
 use rand_pcg::Pcg32;
-use wgpu::{BindGroup, BufferUsages, RenderPass, Sampler, ShaderStages, TextureView};
+use wgpu::{BindGroup, BufferUsages, RenderPass, ShaderStages};
 
 use crate::{
     camera::Camera,
@@ -22,48 +21,6 @@ use crate::{
 struct Object {
     model: Mat4,
     color: Vec4,
-}
-
-pub struct Spawner {
-    acc: f32,
-    spawn_interval: f32,
-    spawn_count: usize,
-    rng: rand_pcg::Pcg32,
-}
-
-impl Spawner {
-    fn update(&mut self, asteroids: &mut Vec<Asteroid>, dt: f32) {
-        asteroids.retain_mut(|v| {
-            v.lifetime -= dt;
-            v.lifetime >= 0.0
-        });
-
-        self.acc += dt;
-        while self.acc >= self.spawn_interval {
-            for _ in 0..self.spawn_count {
-                self.spawn(asteroids);
-            }
-
-            self.acc -= self.spawn_interval;
-        }
-    }
-
-    fn spawn(&mut self, asteroids: &mut Vec<Asteroid>) {
-        let rng = &mut self.rng;
-
-        let dir = rng.gen_range(0.0..TAU);
-        let vel = vec2(dir.cos(), dir.sin()) * rng.gen_range(0.0..5.0);
-
-        asteroids.push(Asteroid {
-            radius: rng.gen_range(0.2..=1.0),
-            color: rng.gen(),
-            pos: Vec2::ZERO,
-            vel,
-            rot: rng.gen_range(0.0..=TAU),
-            ang_vel: rng.gen_range(-1.0..=1.0),
-            lifetime: rng.gen_range(1.0..=10.0),
-        })
-    }
 }
 
 #[derive(Copy, Clone, Debug, Default, Pod, Zeroable)]
@@ -88,29 +45,16 @@ pub struct Game {
     gpu: Arc<Gpu>,
     shader: Shader,
     square: Mesh,
-    asteroid_texture: TextureView,
-    camera_buffer: TypedBuffer<Camera>,
     object_buffer: TypedBuffer<Object>,
     indirect_buffer: TypedBuffer<DrawIndexedIndirect>,
 
     asteroid_bind_group: BindGroup,
-    sampler: Sampler,
-    bounds: Vec2,
-
-    spawner: Spawner,
 
     orbit_time: f32,
 }
 
 impl Game {
     pub async fn new(gpu: Arc<Gpu>) -> anyhow::Result<Self> {
-        let mut spawner = Spawner {
-            acc: 0.0,
-            spawn_interval: 1.0,
-            spawn_count: 64,
-            rng: Pcg32::from_entropy(),
-        };
-
         let square = Mesh::square(&gpu);
 
         tracing::info!("Downloading asteroid texture");
@@ -221,14 +165,9 @@ impl Game {
             gpu,
             shader,
             square,
-            asteroid_texture,
-            sampler,
             asteroid_bind_group,
-            camera_buffer,
             object_data,
             object_buffer,
-            bounds,
-            spawner,
             indirect_buffer,
             orbit_time: 0.0,
         })

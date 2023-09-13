@@ -55,9 +55,7 @@ fn vs_main(
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     var color = in.color * textureSample(diffuse, diffuse_sampler, in.tex_coords);
-    if color.a <= 0.001 {
-        discard;
-    }
+
 
     color = vec4(pow(color.rgb, vec3(1.0 / 2.2)), color.a);
 

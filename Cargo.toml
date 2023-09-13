@@ -32,6 +32,6 @@ opt-level = "s"
 # Set the default for dependencies in Development mode.
 opt-level = "s"
 
-[profile.dev]
+['cfg(target_arch = "wasm32")'.profile.dev]
 # Turn on a small amount of optimization in Development mode.
 opt-level = "s"

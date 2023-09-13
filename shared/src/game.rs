@@ -5,7 +5,7 @@ use bytemuck::{Pod, Zeroable};
 use glam::{vec2, vec3, Mat4, Quat, Vec2, Vec3, Vec4};
 use rand::{Rng, SeedableRng};
 use rand_pcg::Pcg32;
-use wgpu::{BindGroup, BufferUsages, RenderPass, ShaderStages};
+use wgpu::{BindGroup, BufferUsages, IndexFormat, RenderPass, ShaderStages};
 
 use crate::{
     camera::Camera,
@@ -34,17 +34,11 @@ struct Object {
 #[derive(Copy, Clone, Debug, Default, Pod, Zeroable)]
 #[repr(C)]
 pub struct DrawIndexedIndirect {
-    /// The number of vertices to draw.
-    pub vertex_count: u32,
-    /// The number of instances to draw.
+    pub index_count: u32,
     pub instance_count: u32,
-    /// The base index within the index buffer.
-    pub base_index: u32,
-    /// The value added to the vertex index before indexing into the vertex buffer.
-    pub vertex_offset: i32,
-    /// The instance ID of the first instance to draw.
-    /// Has to be 0, unless [`Features::INDIRECT_FIRST_INSTANCE`](crate::Features::INDIRECT_FIRST_INSTANCE) is enabled.
-    pub base_instance: u32,
+    pub first_index: u32,
+    pub base_vertex: u32,
+    pub first_instance: u32,
 }
 
 pub struct Game {
@@ -70,7 +64,6 @@ impl Game {
         let image = reqwest::Client::builder()
             .build()?
             .get("https://dims-content.fra1.digitaloceanspaces.com/assets%2Forion%2Fasteroid.png")
-            // .get("https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Mona_Lisa%2C_by_Leonardo_da_Vinci%2C_from_C2RMF_retouched.jpg/1200px-Mona_Lisa%2C_by_Leonardo_da_Vinci%2C_from_C2RMF_retouched.jpg")
             .send()
             .await?
             .bytes()
@@ -119,7 +112,7 @@ impl Game {
             &gpu,
             "indirect_buffer",
             BufferUsages::INDIRECT | BufferUsages::COPY_DST,
-            &[DrawIndexedIndirect::zeroed(); 1024],
+            &[DrawIndexedIndirect::zeroed(); 512],
         );
 
         let asteroid_bind_group_layout = BindGroupLayoutBuilder::new("asteroid_bind_group_layout")
@@ -150,11 +143,11 @@ impl Game {
         let mut asteroids = Vec::new();
         let mut rng = Pcg32::from_entropy();
 
-        for _ in 0..42 {
+        for i in 0..16 {
             asteroids.push(Asteroid {
-                radius: rng.gen_range(0.5..=1.0),
+                radius: 0.2,
                 color: rng.gen(),
-                pos: Vec2::ZERO,
+                pos: vec2((i as f32 / 15.0) * bounds.x * 1.8 - bounds.x * 0.9, 0.0),
                 rot: rng.gen_range(0.0..=TAU),
                 ang_vel: rng.gen_range(-1.0..=1.0),
                 lifetime: rng.gen_range(1.0..=10.0),
@@ -188,10 +181,10 @@ impl Game {
             })
             .zip(&mut self.asteroids)
             .for_each(|((layer, theta), asteroid)| {
-                let theta = theta + orbit_time * layer.powi(3).sqrt().recip();
+                let theta = theta + orbit_time * layer.powi(3).sqrt().recip() * 0.0;
 
                 let ang = vec2(theta.cos(), theta.sin()) * layer.powi(2);
-                asteroid.pos = ang;
+                // asteroid.pos = ang;
 
                 asteroid.rot += asteroid.ang_vel * dt;
             });
@@ -204,8 +197,9 @@ impl Game {
             return;
         }
 
-        let mut cmds = Vec::new();
+        let mut cmds = [DrawIndexedIndirect::zeroed(); 512];
         let index_count = self.square.index_count();
+
         // Update the object data
         self.object_data
             .iter_mut()
@@ -217,14 +211,18 @@ impl Game {
                     Quat::from_scaled_axis(Vec3::Z * v.rot),
                     v.pos.extend(0.0),
                 );
+
                 object.color = Vec4::ONE * v.lifetime.clamp(0.0, 1.0);
-                cmds.push(DrawIndexedIndirect {
-                    vertex_count: index_count,
+
+                let cmd = DrawIndexedIndirect {
+                    index_count,
                     instance_count: 1,
-                    base_index: 0,
-                    vertex_offset: 0,
-                    base_instance: i as _,
-                })
+                    base_vertex: 0,
+                    first_index: 0,
+                    first_instance: i as u32,
+                };
+
+                cmds[i] = cmd;
             });
 
         self.object_buffer.write(&self.gpu.queue, &self.object_data);
@@ -234,7 +232,9 @@ impl Game {
 
         render_pass.set_bind_group(0, &self.asteroid_bind_group, &[]);
 
-        self.square.bind(render_pass);
+        render_pass.set_vertex_buffer(0, self.square.vertex_buffer.slice(..));
+
+        render_pass.set_index_buffer(self.square.index_buffer.slice(..), IndexFormat::Uint32);
 
         for i in 0..cmds.len() {
             render_pass.draw_indexed_indirect(
@@ -243,10 +243,6 @@ impl Game {
             );
         }
 
-        // render_pass.draw_indexed(
-        //     0..self.square.index_count(),
-        //     0,
-        //     0..self.asteroids.len() as _,
-        // );
+        // render_pass.draw(0..6, 0..self.asteroids.len() as _);
     }
 }

@@ -31,8 +31,8 @@ impl Vertex {
 pub struct Mesh {
     vertex_count: u32,
     index_count: u32,
-    vertex_buffer: Buffer,
-    index_buffer: Buffer,
+    pub vertex_buffer: Buffer,
+    pub index_buffer: Buffer,
 }
 
 impl Mesh {
@@ -63,10 +63,10 @@ impl Mesh {
 
     pub fn square(gpu: &Gpu) -> Self {
         const VERTICES: &[Vertex] = &[
-            Vertex::new(vec3(-0.5, -0.5, 0.0), vec2(0.0, 1.0)),
-            Vertex::new(vec3(0.5, -0.5, 0.0), vec2(1.0, 1.0)),
-            Vertex::new(vec3(0.5, 0.5, 0.0), vec2(1.0, 0.0)),
-            Vertex::new(vec3(-0.5, 0.5, 0.0), vec2(0.0, 0.0)),
+            Vertex::new(vec3(-0.5, -0.5, 0.0), vec2(0.0, 1.0)), // 0
+            Vertex::new(vec3(0.5, -0.5, 0.0), vec2(1.0, 1.0)),  // 1
+            Vertex::new(vec3(0.5, 0.5, 0.0), vec2(1.0, 0.0)),   // 2
+            Vertex::new(vec3(-0.5, 0.5, 0.0), vec2(0.0, 0.0)),  // 3
         ];
 
         const INDICES: &[u32] = &[0, 1, 2, 2, 3, 0];

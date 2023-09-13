@@ -1,8 +1,40 @@
 [package]
 name = "native-client"
-edition = "2021"
-version.workspace = true
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+version = "0.1.0"
+authors = ["Tei Roberts <ten3roberts@gmail.com>"]
+edition = "2018"
 
 [dependencies]
+shared = { path = "../shared" }
+serde = "1.0"
+static_assertions = "1.1"
+async-trait.workspace = true
+
+glam.workspace = true
+rand.workspace = true
+anyhow.workspace = true
+itertools.workspace = true
+winit = "0.28"
+wgpu = { version = "0.17" }
+bytemuck = { version = "1.13", features = ["derive"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["time", "env-filter"] }
+eyre = "0.6"
+color-eyre = "0.6"
+tracing-web = "0.1"
+rand_pcg = { version = "0.3.1" }
+futures.workspace = true
+tokio = { version = "1", features = ["rt", "sync", "time", "macros"] }
+once_cell = "1.17.0"
+chrono.workspace = true
+pin-project.workspace = true
+thiserror.workspace = true
+parking_lot.workspace = true
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3.13"
+
+[dependencies.image]
+version = "0.24"
+default-features = false
+features = ["png", "jpeg"]

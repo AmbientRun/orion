@@ -31,7 +31,7 @@ pub async fn start() {
 
     let fmt_layer = tracing_subscriber::fmt::layer()
         .with_ansi(false) // Only partially supported across browsers
-        .with_timer(UtcTime::rfc_3339()) // std::time is not available in browsers
+        .without_time() // std::time is not available in browsers
         .with_writer(MakeConsoleWriter); // write events to the console
 
     registry()

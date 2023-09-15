@@ -236,13 +236,17 @@ impl Game {
 
         render_pass.set_index_buffer(self.square.index_buffer.slice(..), IndexFormat::Uint32);
 
-        for i in 0..cmds.len() {
-            render_pass.draw_indexed_indirect(
-                &self.indirect_buffer,
-                i as u64 * std::mem::size_of::<DrawIndexedIndirect>() as u64,
-            );
+        if true {
+            for i in 0..cmds.len() {
+                render_pass.draw_indexed_indirect(
+                    &self.indirect_buffer,
+                    3 as u64 * std::mem::size_of::<DrawIndexedIndirect>() as u64,
+                );
+            }
+        } else {
+            for i in 0..self.asteroids.len() {
+                render_pass.draw_indexed(0..6, 0, i as u32..(i as u32 + 1));
+            }
         }
-
-        // render_pass.draw(0..6, 0..self.asteroids.len() as _);
     }
 }

@@ -24,8 +24,11 @@ impl Gpu {
         // The instance is a handle to our GPU
         // Backends::all => Vulkan + Metal + DX12 + Browser WebGPU
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
-            backends: wgpu::Backends::all(),
-            dx12_shader_compiler: Default::default(),
+            backends: wgpu::Backends::DX12,
+            dx12_shader_compiler: wgpu::Dx12Compiler::Dxc {
+                dxil_path: Some("./dxil.dll".into()),
+                dxc_path: Some("./dxcompiler.dll".into()),
+            },
         });
 
         // let instance = wgpu::Instance::new(Backends::all());

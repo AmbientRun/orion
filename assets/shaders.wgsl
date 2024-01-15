@@ -24,8 +24,8 @@ struct VertexOutput {
 var<uniform> camera: Camera;
 
 @group(0) @binding(1)
-//var<uniform> object_data: array<ObjectData, 64>;
-var<storage> object_data: array<ObjectData>;
+var<uniform> object_data: array<ObjectData, 128>;
+// var<storage> object_data: array<ObjectData>;
 
 @group(0) @binding(2)
 var diffuse: texture_2d<f32>;

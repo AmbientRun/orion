@@ -5,7 +5,7 @@ use bytemuck::{Pod, Zeroable};
 use glam::{vec2, vec3, Mat4, Quat, Vec2, Vec3, Vec4};
 use rand::{Rng, SeedableRng};
 use rand_pcg::Pcg32;
-use wgpu::{BindGroup, BufferUsages, IndexFormat, RenderPass, ShaderStages};
+use wgpu::{BindGroup, BufferUsages, IndexFormat, RenderPass, ShaderStages, TextureView};
 
 use crate::{
     camera::Camera,
@@ -47,12 +47,17 @@ pub struct Game {
     gpu: Arc<Gpu>,
     shader: Shader,
     square: Mesh,
-    object_buffer: TypedBuffer<Object>,
+    camera_buffer: TypedBuffer<Camera>,
+    asteroid_texture: TextureView,
     indirect_buffer: TypedBuffer<DrawIndexedIndirect>,
 
-    asteroid_bind_group: BindGroup,
+    object_buffers: Vec<TypedBuffer<Object>>,
+    asteroid_bind_groups: Vec<BindGroup>,
+
+    sampler: wgpu::Sampler,
 
     orbit_time: f32,
+    asteroid_bind_group_layout: wgpu::BindGroupLayout,
 }
 
 impl Game {
@@ -101,33 +106,19 @@ impl Game {
 
         let object_data = vec![Default::default(); 1024];
 
-        let object_buffer = TypedBuffer::new(
-            &gpu,
-            "object_buffer",
-            BufferUsages::STORAGE | BufferUsages::COPY_DST,
-            &object_data,
-        );
-
         let indirect_buffer = TypedBuffer::new(
             &gpu,
             "indirect_buffer",
             BufferUsages::INDIRECT | BufferUsages::COPY_DST,
-            &[DrawIndexedIndirect::zeroed(); 512],
+            &[DrawIndexedIndirect::zeroed(); 16],
         );
 
         let asteroid_bind_group_layout = BindGroupLayoutBuilder::new("asteroid_bind_group_layout")
             .bind_uniform_buffer(ShaderStages::VERTEX)
-            .bind_storage_buffer(ShaderStages::VERTEX)
+            .bind_uniform_buffer(ShaderStages::VERTEX)
             .bind_texture(ShaderStages::FRAGMENT)
             .bind_sampler(ShaderStages::FRAGMENT)
             .build(&gpu);
-
-        let asteroid_bind_group = BindGroupBuilder::new("asteroid_bind_group")
-            .bind_buffer(&camera_buffer)
-            .bind_buffer(&object_buffer)
-            .bind_texture(&asteroid_texture)
-            .bind_sampler(&sampler)
-            .build(&gpu, &asteroid_bind_group_layout);
 
         let shader = Shader::new(
             &gpu,
@@ -140,38 +131,43 @@ impl Game {
             },
         );
 
-        let mut asteroids = Vec::new();
-        let mut rng = Pcg32::from_entropy();
-
-        for i in 0..16 {
-            asteroids.push(Asteroid {
-                radius: 0.2,
-                color: rng.gen(),
-                pos: vec2((i as f32 / 15.0) * bounds.x * 1.8 - bounds.x * 0.9, 0.0),
-                rot: rng.gen_range(0.0..=TAU),
-                ang_vel: rng.gen_range(-1.0..=1.0),
-                lifetime: rng.gen_range(1.0..=10.0),
-            })
-        }
-
         Ok(Self {
-            asteroids,
+            asteroids: Vec::new(),
             gpu,
             shader,
             square,
-            asteroid_bind_group,
+            asteroid_bind_groups: Vec::new(),
+            asteroid_bind_group_layout,
+            object_buffers: Vec::new(),
             object_data,
-            object_buffer,
             indirect_buffer,
             orbit_time: 0.0,
+            camera_buffer,
+            asteroid_texture,
+            sampler,
         })
     }
 
     pub fn update(&mut self, dt: f32) {
         self.orbit_time += dt;
-        let layers = [2, 8, 32, 48];
+        let layers = [2, 8, 32, 48, 64, 96];
+
+        let mut rng = Pcg32::from_entropy();
+        let total_count: usize = layers.iter().sum();
 
         let orbit_time = self.orbit_time;
+
+        self.asteroids
+            .extend((self.asteroids.len()..total_count).map(|_| Asteroid {
+                radius: 0.2,
+                color: rng.gen(),
+                pos: Vec2::ZERO,
+                rot: rng.gen_range(0.0..=TAU),
+                ang_vel: rng.gen_range(-1.0..=1.0),
+                lifetime: rng.gen_range(1.0..=10.0),
+            }));
+
+        tracing::info!(asteroid_count = self.asteroids.len());
 
         layers
             .iter()
@@ -181,10 +177,10 @@ impl Game {
             })
             .zip(&mut self.asteroids)
             .for_each(|((layer, theta), asteroid)| {
-                let theta = theta + orbit_time * layer.powi(3).sqrt().recip() * 0.0;
+                let theta = theta + orbit_time * layer.powi(3).sqrt().recip() * 1.0;
 
-                let ang = vec2(theta.cos(), theta.sin()) * layer.powi(2);
-                // asteroid.pos = ang;
+                let ang = vec2(theta.cos(), theta.sin()) * layer.powi(2) * 0.5;
+                asteroid.pos = ang;
 
                 asteroid.rot += asteroid.ang_vel * dt;
             });
@@ -214,39 +210,74 @@ impl Game {
 
                 object.color = Vec4::ONE * v.lifetime.clamp(0.0, 1.0);
 
-                let cmd = DrawIndexedIndirect {
-                    index_count,
-                    instance_count: 1,
-                    base_vertex: 0,
-                    first_index: 0,
-                    first_instance: i as u32,
-                };
+                // let cmd = DrawIndexedIndirect {
+                //     index_count,
+                //     instance_count: 1,
+                //     base_vertex: 0,
+                //     first_index: 0,
+                //     first_instance: i as u32,
+                // };
 
-                cmds[i] = cmd;
+                // cmds[i] = cmd;
             });
 
-        self.object_buffer.write(&self.gpu.queue, &self.object_data);
-        self.indirect_buffer.write(&self.gpu.queue, &cmds);
+        const CHUNK_SIZE: usize = 128;
+        for i in self.object_buffers.len()..(self.asteroids.len().div_ceil(CHUNK_SIZE)) {
+            tracing::info!("creating buffer {i}");
+            // Uniform buffers have a strict byte size limit
+            let object_data = vec![Default::default(); CHUNK_SIZE];
 
-        render_pass.set_pipeline(self.shader.pipeline());
+            let object_buffer = TypedBuffer::new(
+                &self.gpu,
+                "object_buffer",
+                BufferUsages::UNIFORM | BufferUsages::COPY_DST,
+                &object_data,
+            );
 
-        render_pass.set_bind_group(0, &self.asteroid_bind_group, &[]);
+            let asteroid_bind_group = BindGroupBuilder::new("asteroid_bind_group")
+                .bind_buffer(&self.camera_buffer)
+                .bind_buffer(&object_buffer)
+                .bind_texture(&self.asteroid_texture)
+                .bind_sampler(&self.sampler)
+                .build(&self.gpu, &self.asteroid_bind_group_layout);
 
-        render_pass.set_vertex_buffer(0, self.square.vertex_buffer.slice(..));
+            self.object_buffers.push(object_buffer);
+            self.asteroid_bind_groups.push(asteroid_bind_group);
+        }
 
-        render_pass.set_index_buffer(self.square.index_buffer.slice(..), IndexFormat::Uint32);
+        // The uniform buffer is limited in size, so we need to split the data into chunks and
+        // separately write them to the buffer and issue draw calls
+        for (i, chunk) in self.asteroids.chunks(CHUNK_SIZE).enumerate() {
+            // The buffer is enqueued for writing to the GPU
+            //
+            // As such, we need a ring of them
+            let chunk_start = i * CHUNK_SIZE;
+            self.object_buffers[i].write(
+                &self.gpu.queue,
+                &self.object_data[chunk_start..chunk_start + chunk.len()],
+            );
+            // self.indirect_buffer.write(&self.gpu.queue, &cmds.);
 
-        if true {
-            for i in 0..cmds.len() {
-                render_pass.draw_indexed_indirect(
-                    &self.indirect_buffer,
-                    3 as u64 * std::mem::size_of::<DrawIndexedIndirect>() as u64,
-                );
-            }
-        } else {
-            for i in 0..self.asteroids.len() {
-                render_pass.draw_indexed(0..6, 0, i as u32..(i as u32 + 1));
-            }
+            render_pass.set_pipeline(self.shader.pipeline());
+
+            render_pass.set_bind_group(0, &self.asteroid_bind_groups[i], &[]);
+
+            render_pass.set_vertex_buffer(0, self.square.vertex_buffer.slice(..));
+
+            render_pass.set_index_buffer(self.square.index_buffer.slice(..), IndexFormat::Uint32);
+
+            // for i in 0..cmds.len() {
+            // render_pass.draw_indexed_indirect(
+            //     &self.indirect_buffer,
+            //     i as u64 * std::mem::size_of::<DrawIndexedIndirect>() as u64,
+            // );
+            // }
+
+            render_pass.draw_indexed(
+                0..index_count,
+                0,
+                chunk_start as u32..(chunk_start + chunk.len()) as u32,
+            );
         }
     }
 }

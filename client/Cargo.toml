@@ -44,7 +44,7 @@ web-sys = { version = "0.3.61", features = [
 # rustls = "0.20"
 winit = "0.28"
 
-wgpu = { version = "0.17" }
+wgpu = { version = "0.17", features = ["webgl"] }
 
 
 bytemuck = { version = "1.13", features = ["derive"] }
